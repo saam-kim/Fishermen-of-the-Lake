@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>호수의 어부들: 공유지의 비극 - 교육용 시뮬레이터</title>
+  <!-- Google Fonts for premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- 1. INITIAL SETUP SCREEN -->
+    <section id="setup-screen" class="screen active">
+      <div class="setup-card glass">
+        <div class="setup-header">
+          <div class="logo-icon">🐟</div>
+          <h1>호수의 어부들</h1>
+          <h2>공유지의 비극 시뮬레이터</h2>
+        </div>
+        
+        <form id="setup-form" onsubmit="event.preventDefault();">
+          <div class="setup-grid">
+            <div class="input-group">
+              <label for="input-teams-count">👥 모둠 수 (2 ~ 8모둠)</label>
+              <div class="number-stepper">
+                <button type="button" onclick="adjustStep('input-teams-count', -1, 2, 8)">-</button>
+                <input type="number" id="input-teams-count" value="5" min="2" max="8" readonly>
+                <button type="button" onclick="adjustStep('input-teams-count', 1, 2, 8)">+</button>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="setup-actions" style="display: flex; gap: 12px; justify-content: center; width: 100%; max-width: 700px; margin: 0 auto; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline btn-large" id="btn-open-guide" style="flex: 1; min-width: 140px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; white-space: nowrap;">
+              📖 활동 가이드
+            </button>
+            <button type="button" class="btn btn-outline btn-large" id="btn-open-rules" style="flex: 1; min-width: 140px; border-color: rgba(255, 255, 255, 0.2); color: #e5e7eb; font-weight: bold; white-space: nowrap;">
+              📜 활동 규칙
+            </button>
+            <button type="button" class="btn btn-primary btn-large" id="btn-start-game" style="flex: 1.5; min-width: 200px; white-space: nowrap;">
+              시뮬레이션 시작하기 🚢
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 2. MAIN SIMULATION SCREEN -->
+    <section id="game-screen" class="screen">
+      
+      <!-- Top Dashboard Header -->
+      <header class="game-header glass">
+        <div class="header-left" style="flex-wrap: wrap; gap: 8px;">
+          <button class="btn-icon" id="btn-home-icon" title="처음 설정으로">🏠</button>
+          <div class="game-titles">
+            <h1 class="brand-title">호수의 어부들 : 공유지의 비극</h1>
+            <p class="current-policy-tag" id="active-policy-display">자유 방임 모드 (기본)</p>
+          </div>
+          <button class="btn btn-sm btn-outline" id="btn-open-projector" style="margin-left: 15px; font-weight: bold; background: rgba(6, 182, 212, 0.1); border-color: var(--accent-blue); color: var(--accent-blue);">
+            🖥️ 빔프로젝터용 화면 (학생용) 띄우기
+          </button>
+          <button class="btn btn-sm btn-outline" id="btn-header-rules" style="font-weight: bold; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.02);">
+            📜 활동 규칙
+          </button>
+        </div>
+        
+        <div class="header-stats">
+          <div class="stat-box">
+            <span class="stat-label">현재 진행 턴</span>
+            <span class="stat-value" id="display-turn">1 / 9</span>
+          </div>
+          <div class="stat-box border-accent lesson-progress-box">
+            <span class="stat-label">수업 진행 상황</span>
+            <span class="stat-value badge text-success" id="display-phase-status">🌿 자유 방임</span>
+            <div class="lesson-progress-track">
+              <div class="lesson-progress-fill" id="lesson-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="game-main-layout">
+        
+        <!-- Left: Lake Visualization Area -->
+        <div class="lake-card glass">
+          <div class="lake-card-header">
+            <h3>🌊 실시간 호수 생태계 현황</h3>
+            <div class="lake-header-stats">
+              <span class="lake-header-stat">
+                <span class="lake-header-stat-label">물고기</span>
+                <span class="lake-header-stat-value" id="display-fish-count-inline">100.0</span>
+              </span>
+              <span class="lake-header-stat">
+                <span class="lake-header-stat-label">건강도</span>
+                <span class="lake-header-stat-value badge text-success" id="display-lake-status-inline">풍부함</span>
+              </span>
+              <span class="capacity-info" id="capacity-info-display">최대 수용량: 150마리</span>
+            </div>
+          </div>
+          <div class="canvas-container">
+            <canvas id="lake-canvas"></canvas>
+            <div id="lake-overlay-msg" class="hidden">
+              <div class="alert-box">
+                <span class="alert-icon">⚠️</span>
+                <h2>호수가 고갈되었습니다!</h2>
+                <p>더 이상 물고기가 번식할 수 없는 환경입니다.</p>
+                <div class="alert-actions">
+                  <button class="btn btn-danger" id="btn-continue-depleted">계속 진행</button>
+                  <button class="btn btn-light" id="btn-end-depleted">시뮬레이션 조기 종료</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Timer and Negotiation Area -->
+          <div class="timer-section">
+            <div class="timer-display-wrapper">
+              <span class="timer-icon">⏳</span>
+              <span class="timer-title">협상 및 대화 시간:</span>
+              <span id="timer-clock" class="timer-clock">03:00</span>
+            </div>
+            <div class="timer-controls">
+              <button class="btn btn-sm btn-outline" id="btn-timer-start">시작</button>
+              <button class="btn btn-sm btn-outline" id="btn-timer-pause">일시정지</button>
+              <button class="btn btn-sm btn-outline" id="btn-timer-reset">리셋</button>
+              <button class="btn btn-sm btn-warning" id="btn-timer-quick-set" data-sec="60">1분 설정</button>
+              <button class="btn btn-sm btn-warning" id="btn-timer-quick-set-3" data-sec="180">3분 설정</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Input and Policies Area -->
+        <div class="control-panel flex-column">
+          
+          <!-- Input Form for Teams -->
+          <div class="panel-card glass flex-fill">
+            <div class="panel-card-header" style="display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding-bottom: 16px;">
+              <h3>🚢 각 모둠별 출항 배 척수 선택</h3>
+              <span class="shortcut-tip" style="margin-top: 0;">💡 [1], [2], [3] 순차 입력</span>
+              <button type="button" class="btn btn-sm btn-warning" id="btn-toggle-mask" title="단축키: H" style="padding: 6px 12px; font-size: 0.82rem; font-weight:bold;">🔒 비밀 입력 켜기</button>
+            </div>
+            <div class="input-panel-scroll">
+              <div id="team-inputs-container" class="team-inputs-list">
+                <!-- Javascript will inject team inputs dynamically -->
+              </div>
+            </div>
+            <div class="panel-actions">
+              <button class="btn btn-primary btn-large btn-full" id="btn-execute-turn">
+                이번 턴 실행하기 🚀
+              </button>
+            </div>
+          </div>
+
+          <!-- Rules / Policy Phase Timeline (auto-progresses with turn count) -->
+          <div class="panel-card glass">
+            <div class="panel-card-header">
+              <h3>📜 수업 진행 단계</h3>
+            </div>
+            <div class="policy-selector-grid">
+              <div class="policy-card" id="policy-laissez">
+                <span class="policy-icon">🌿</span>
+                <span class="policy-name">자유 방임</span>
+                <span class="policy-desc">1~3턴 · 제한 없음</span>
+              </div>
+              <div class="policy-card" id="policy-agreement">
+                <span class="policy-icon">🤝</span>
+                <span class="policy-name">자율 협약</span>
+                <span class="policy-desc">4~6턴 · 약속 안내</span>
+              </div>
+              <div class="policy-card" id="policy-regulation">
+                <span class="policy-icon">⚖️🔍</span>
+                <span class="policy-name">정부 규제 · 감시 실패</span>
+                <span class="policy-desc">7~9턴 · 출항 제한 + 비공개</span>
+              </div>
+            </div>
+
+            <!-- Dynamic settings for the currently active phase -->
+            <div id="policy-settings-area" class="policy-settings-box hidden">
+              <!-- Content injected based on phase -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- History Table Section -->
+      <footer class="history-section glass">
+        <div class="section-header">
+          <h3>📊 턴별 진행 기록 테이블</h3>
+          <button class="btn btn-sm btn-outline" id="btn-export-capture" onclick="window.print()">
+            🖨️ 화면 인쇄 / PDF 저장
+          </button>
+        </div>
+        <div class="table-container">
+          <table class="history-table" id="table-history">
+            <thead>
+              <tr id="table-header-row">
+                <th>턴</th>
+                <th>정책 모드</th>
+                <th>총 배 척수</th>
+                <th>총 포획량</th>
+                <th>남은 물고기</th>
+                <th>번식량</th>
+                <th>다음 턴 물고기</th>
+                <!-- Team headers dynamically injected -->
+              </tr>
+            </thead>
+            <tbody id="table-history-body">
+              <tr>
+                <td colspan="7" class="text-muted text-center">게임이 시작되면 기록이 여기에 쌓입니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </footer>
+
+    </section>
+
+    <!-- 3. TURN RESULT DIALOG (MODAL) -->
+    <div id="result-modal" class="modal-overlay">
+      <div class="modal-content glass animate-pop">
+        <div class="modal-header">
+          <h2>🔔 턴 <span id="modal-turn-num">1</span> 결과 발표</h2>
+          <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="turn-summary-block">
+            <div class="summary-highlight" id="modal-summary-text">
+              "총 15척 출항! 물고기 75.0마리 포획!"
+            </div>
+            <div class="summary-details">
+              <p id="modal-detail-remain">🐟 호수에는 25.0마리만 남았습니다.</p>
+              <p id="modal-detail-repro">📈 남은 물고기의 80%인 20.0마리가 번식했습니다.</p>
+              <p class="next-fish-highlight" id="modal-detail-next">✨ 다음 턴 시작 물고기 수는 37.5마리입니다.</p>
+            </div>
+          </div>
+
+          <!-- Team Turn Details Table -->
+          <div class="team-results-block">
+            <h3>👥 모둠별 턴 결과</h3>
+            <table class="modal-team-table">
+              <thead>
+                <tr>
+                  <th>모둠</th>
+                  <th>출항 배 수</th>
+                  <th>포획한 물고기 (수익)</th>
+                  <th>규제 위반 벌금</th>
+                  <th>누적 수익금</th>
+                </tr>
+              </thead>
+              <tbody id="modal-team-body">
+                <!-- Javascript inject -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="modal-anonymity-msg" class="alert-info hidden">
+            <strong>🔍 감시 실패 상황 발생:</strong> 이번 턴은 감시가 제대로 이루어지지 않아, 무작위로 감시망에 걸린 일부 모둠의 선택만 공개되었습니다! 배신자가 숨어있을 수 있습니다.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-large" onclick="closeModal()">다음 턴 준비하기 ➡️</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. AGREEMENT MODAL -->
+    <div id="agreement-modal" class="modal-overlay">
+      <div class="modal-content glass animate-pop max-w-sm">
+        <div class="modal-header text-center">
+          <h2>🤝 모둠 간 자율 협약 약속</h2>
+        </div>
+        <div class="modal-body text-center">
+          <p class="agreement-announcement">
+            📢 <strong>교사 안내:</strong><br>
+            "우리 모두의 자산인 호수를 보존하기 위해,<br>
+            모든 모둠이 <strong>배 1척씩만</strong> 출항시키기로 신사협정을 체결하였습니다."
+          </p>
+          <p class="text-muted text-sm mt-2">
+            ※ 주의: 학생들은 이 약속을 어기고 2척 또는 3척을 낼 수 있습니다.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-full" onclick="closeAgreementModal()">협약 시작하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4.2. REGULATION PHASE MODAL -->
+    <div id="regulation-modal" class="modal-overlay">
+      <div class="modal-content glass animate-pop max-w-sm">
+        <div class="modal-header text-center">
+          <h2>⚖️ 정부 규제 &amp; 감시 실패 시작</h2>
+        </div>
+        <div class="modal-body text-center">
+          <p class="agreement-announcement">
+            📢 <strong>교사 안내:</strong><br>
+            "이제부터 정부가 개입합니다.<br>
+            모든 모둠은 <strong id="regulation-modal-max">1척</strong>까지만 출항하도록 권고됩니다.<br>
+            결과 발표 시 각 모둠이 실제로 낸 척수는 <strong>비공개(?)</strong> 처리되며,<br>
+            초과 출항한 모둠이라도 <strong>적발되지 않으면 벌금을 물지 않습니다.</strong>"
+          </p>
+          <p class="text-muted text-sm mt-2">
+            ※ 일부 모둠만 무작위로 감시망에 적발되어 공개됩니다. 적발된 모둠은 초과 1척당 <strong>-7점</strong> 벌금을 즉시 물게 되며, 교사가 직접 "조사하기"로 폭로한 모둠도 그 순간 벌금이 적용됩니다.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-full" onclick="closeRegulationModal()">규제 시작하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4.5. GUIDE MODAL -->
+    <div id="guide-modal" class="modal-overlay">
+      <div class="modal-content glass animate-pop" style="max-width: 750px; text-align: left;">
+        <div class="modal-header">
+          <h2>📖 [호수의 어부들] 시뮬레이션 수업 가이드</h2>
+          <button class="close-btn" onclick="closeGuideModal()">×</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
+          
+          <div style="margin-bottom: 24px;">
+            <h3 style="color: #38bdf8; border-bottom: 1.5px solid rgba(56, 189, 248, 0.3); padding-bottom: 6px; margin-bottom: 10px;">🎯 수업 목표</h3>
+            <p style="font-size: 0.95rem; line-height: 1.6; color: #e5e7eb;">
+              개인의 단기적 이익(합리적 선택)이 사회적 최선과 충돌하여 모두를 파멸로 이끄는 <strong>'공유지의 비극(시장 실패)'</strong> 개념을 직접 체험합니다.
+              더불어, 이를 예방하고 호수를 상생 보존하기 위한 <strong>다양한 정책 대안(자율 약속, 정부 규제)</strong>의 실효성을 토론으로 밝혀냅니다.
+            </p>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <h3 style="color: #facc15; border-bottom: 1.5px solid rgba(250, 204, 21, 0.3); padding-bottom: 6px; margin-bottom: 10px;">🗺️ 9턴 자동 진행 시나리오</h3>
+            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px;">아래 3단계는 별도 조작 없이 턴 진행에 따라 자동으로 전환됩니다.</p>
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.92rem; line-height: 1.5;">
+              <div style="background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.05);">
+                <strong style="color: #ef4444;">1단계 (1~3턴) : 자유 방임 (시장 실패 경험)</strong>
+                <p style="margin-top: 4px; color: #cbd5e1;">제한 없이 진행됩니다. 모둠들은 경쟁적으로 배 3척씩(최대 포획) 출항시키고, 호수는 급격하게 황폐화(고갈)되어 첫 비극을 경험합니다.</p>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.05);">
+                <strong style="color: #38bdf8;">2단계 (4~6턴) : 자율 협약 (협상과 배신)</strong>
+                <p style="margin-top: 4px; color: #cbd5e1;">4턴이 시작되면 자율 협약 안내 팝업이 자동으로 뜹니다. 협상 타이머(3분)를 켜고 모둠 대표들이 모여 "모두 상생을 위해 1척씩만 출항하자"고 약속하지만, 누군가는 자신의 이득을 위해 비밀리에 약속을 어겨(배신) 협약이 깨지는 불신 국면을 직접 체감합니다.</p>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.05);">
+                <strong style="color: #34d399;">3단계 (7~9턴) : 정부 규제 &amp; 감시 실패 (제도 보완)</strong>
+                <p style="margin-top: 4px; color: #cbd5e1;">7턴이 시작되면 정부 규제·감시 실패 안내 팝업이 자동으로 뜹니다. 권장 출항 척수(1~2척, 교사가 조절 가능)를 초과해도 실제 척수는 결과에서 비공개(?) 처리되어 일부만 무작위로 적발됩니다. <strong>적발된 모둠만</strong> 초과 1척당 -7점의 벌금을 물고, 적발되지 않으면 벌금이 없습니다 — 규제만으로는 부족하고 감시(적발)가 뒷받침되어야 제도가 실효성을 갖는다는 점을 보여줍니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <h3 style="color: #34d399; border-bottom: 1.5px solid rgba(52, 211, 153, 0.3); padding-bottom: 6px; margin-bottom: 10px;">💡 교사용 단축키 및 편의 기능</h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; color: #cbd5e1; padding-left: 0;">
+              <li>🔑 <strong style="color: #fff;">[H] 또는 [ㅗ] 키</strong>: 학생들 몰래 화면에 모둠 척수 선택 가림막(마스킹)을 즉시 켜고 끕니다.</li>
+              <li>🔑 <strong style="color: #fff;">[1], [2], [3] 숫자 키</strong>: 선택지 클릭 없이 순서대로 척수가 자동 입력되고 다음 모둠으로 포커스가 자동 이동합니다.</li>
+              <li>🔑 <strong style="color: #fff;">가림막 엿보기(Inspect)</strong>: 가림막이 활성화된 상태에서 해당 모둠 칸을 <strong>클릭</strong>하면 교사만 안전하게 개별 척수를 엿볼 수 있습니다.</li>
+              <li>🖥️ <strong style="color: #fff;">빔프로젝터용 화면</strong>: 화면 왼쪽 위의 버튼을 누르면 컨트롤 패널이 숨겨진 깨끗한 학생용 전용 창이 듀얼 모니터로 미러링됩니다.</li>
+            </ul>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-full" onclick="closeGuideModal()">확인 완료</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4.6. RULES MODAL -->
+    <div id="rules-modal" class="modal-overlay">
+      <div class="modal-content glass animate-pop" style="max-width: 800px; text-align: left;">
+        <div class="modal-header">
+          <h2>📜 호수의 어부들 : 활동 규칙 설명</h2>
+          <button class="close-btn" onclick="closeRulesModal()">×</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 18px; border-radius: 12px;">
+              <h3 style="color: #38bdf8; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">🐠 1. 호수와 물고기 (자연 자원)</h3>
+              <ul style="padding-left: 18px; line-height: 1.6; color: #cbd5e1; font-size: 0.92rem;">
+                <li>호수의 초기 물고기 수는 <strong>모둠 수 × 30마리</strong>로 결정됩니다(예: 5모둠이면 150마리). 모둠이 많을수록 호수도 커져서 학급 규모와 상관없이 같은 긴장감을 유지합니다.</li>
+                <li>호수가 감당할 수 있는 최대 물고기 수(환경 수용력)는 초기 물고기 수와 같습니다.</li>
+                <li><strong>번식 단계 (턴 종료 시)</strong>: 어획 후 호수에 남은 물고기는 스스로 번식하여 <strong>80%가 증가</strong>합니다.</li>
+              </ul>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 18px; border-radius: 12px;">
+              <h3 style="color: #facc15; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">🚢 2. 어부들의 출항 (개별 선택)</h3>
+              <ul style="padding-left: 18px; line-height: 1.6; color: #cbd5e1; font-size: 0.92rem;">
+                <li>각 모둠은 매 턴 호수에 출항시킬 배의 개수를 결정합니다.</li>
+                <li>선택 가능한 척수: <strong>1척, 2척, 3척</strong> 중 하나</li>
+                <li>출항 척수가 많을수록 모둠이 얻는 1차 기대 이익이 커집니다.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 15px;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 18px; border-radius: 12px;">
+              <h3 style="color: #34d399; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">💰 3. 어획량 분배 (어획 규칙)</h3>
+              <ul style="padding-left: 18px; line-height: 1.6; color: #cbd5e1; font-size: 0.92rem;">
+                <li><strong>배 1척당 기본 어획량은 5마리</strong>입니다.</li>
+                <li>출항한 총 척수가 늘어날수록 호수 내의 혼잡 및 경쟁으로 인해 전체적인 포획 효율성이 영향받을 수 있습니다.</li>
+                <li>만약 호수의 물고기 총량이 출항한 배들의 총 어획 요구량보다 부족하면, <strong>물고기는 출항한 배 척수에 비례하여 분배</strong>됩니다.</li>
+              </ul>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 18px; border-radius: 12px;">
+              <h3 style="color: #a78bfa; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">⚖️ 4. 9턴 자동 정책 전환</h3>
+              <ul style="padding-left: 18px; line-height: 1.6; color: #cbd5e1; font-size: 0.92rem;">
+                <li><strong>1~3턴 자유 방임</strong>: 어떤 법도 없습니다. 최대 3척까지 자유 출항합니다.</li>
+                <li><strong>4~6턴 자율 협약</strong>: 모둠들 간 1척만 출항하자는 도덕적 상생 신사 약속을 맺습니다. (강제력 없음)</li>
+                <li><strong>7~9턴 정부 규제·감시 실패</strong>: 권장 출항 척수(1~2척)를 초과해도 실제 척수는 결과에서 비공개(?) 처리되며, 무작위 감시 또는 교사의 직접 조사로 <strong>적발된 모둠만</strong> 초과 1척당 -7점 벌금을 뭅니다.</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-full" onclick="closeRulesModal()">규칙 확인 완료 🚢</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. FINAL RESULT SCREEN -->
+    <section id="result-screen" class="screen">
+      <div class="result-card glass">
+        <div class="result-header">
+          <h1>🏆 시뮬레이션 최종 결과 분석</h1>
+          <p class="subtitle" id="result-game-meta">총 6턴 진행 / 최종 호수 상태: 고갈</p>
+        </div>
+
+        <div class="result-dashboard">
+          
+          <!-- Lake State Outcome -->
+          <div class="result-stat-card border-accent text-center">
+            <h3>최종 호수 물고기</h3>
+            <span class="result-stat-large" id="result-final-fish">0.0마리</span>
+            <p class="result-stat-sub text-danger" id="result-lake-destiny">호수가 완전히 메말랐습니다 (고갈)</p>
+          </div>
+
+          <!-- Total Revenue -->
+          <div class="result-stat-card text-center">
+            <h3>사회 전체 누적 수익</h3>
+            <span class="result-stat-large" id="result-total-profit">0마리 분</span>
+            <p class="result-stat-sub" id="result-avg-profit">모둠 평균: 0마리</p>
+          </div>
+
+          <!-- Extremes -->
+          <div class="result-stat-card">
+            <h3>포획 통계</h3>
+            <ul class="stats-list">
+              <li>
+                <span class="stat-li-label">🦈 가장 많이 출항한 모둠</span>
+                <span class="stat-li-val text-danger" id="result-most-departed">5모둠 (18척)</span>
+              </li>
+              <li>
+                <span class="stat-li-label">🕊️ 가장 적게 출항한 모둠</span>
+                <span class="stat-li-val text-success" id="result-least-departed">3모둠 (6척)</span>
+              </li>
+              <li>
+                <span class="stat-li-label">🤝 가장 협력적인 턴</span>
+                <span class="stat-li-val" id="result-most-cooperative-turn">2턴 (총 5척 출항)</span>
+              </li>
+              <li>
+                <span class="stat-li-label">🔥 가장 과잉 출항이 심한 턴</span>
+                <span class="stat-li-val text-danger" id="result-most-greedy-turn">4턴 (총 15척 출항)</span>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- Leaderboard (Rankings) -->
+        <div class="leaderboard-section">
+          <h2>📊 모둠별 최종 누적 수익 순위</h2>
+          <div class="leaderboard-grid" id="leaderboard-container">
+            <!-- Dynamically injected leaderboard items -->
+          </div>
+        </div>
+
+        <!-- Discussion Questions -->
+        <div class="discussion-section">
+          <h2>💬 수업용 토론 질문 (시장 실패와 제도 설계)</h2>
+          <div class="discussion-grid">
+            <div class="question-card">
+              <span class="q-num">Q1</span>
+              <p>각 모둠의 개별적인 배 출항 선택은 자신의 수익을 최대화하기 위한 <strong>합리적인 선택</strong>이었습니까? 그 결과 나타난 사회 전체의 결과는 바람직한가요?</p>
+            </div>
+            <div class="question-card">
+              <span class="q-num">Q2</span>
+              <p>만약 호수의 물고기가 완전히 고갈되었다면, 그 <strong>비극의 책임</strong>은 어떤 모둠에 있습니까? 아니면 게임의 구조(제도의 부재)에 있습니까?</p>
+            </div>
+            <div class="question-card">
+              <span class="q-num">Q3</span>
+              <p><strong>자율 협약(약속)</strong>이 맺어졌을 때, 왜 누군가는 배신을 선택했습니까? 이를 막기 위해 <strong>정부 규제</strong>나 <strong>감시 제도</strong>, 혹은 <strong>공동체 내부 규범</strong> 중 무엇이 효과적이었나요?</p>
+            </div>
+            <div class="question-card">
+              <span class="q-num">Q4</span>
+              <p>현실 세계에서 이와 유사한 <strong>'공유지의 비극'</strong> 현상에는 무엇이 있을까요? (예: 지구 온난화, 남획, 공공시설 훼손, 도로 정체 등)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-actions" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-outline" id="btn-restart-keep-settings">
+            🔄 이전 설정으로 다시 게임하기
+          </button>
+          <button class="btn btn-primary" id="btn-restart-fresh">
+            ⚙️ 설정 화면으로 돌아가기
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
