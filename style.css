@@ -902,8 +902,19 @@ button:disabled {
 .modal-content {
   width: 90%;
   max-width: 700px;
+  max-height: 88vh;
   padding: 30px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keep header/footer always visible; only the body scrolls when content
+   (e.g. many hidden teams during the regulation/monitoring phase) overflows */
+.modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-content.max-w-sm {
