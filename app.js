@@ -73,10 +73,96 @@ function storeSnapshot(key, snapshot) {
   }
 }
 
+function boundedNumber(value, min, max, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+function normalizeStoredSnapshot(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const teamsCount = Math.round(boundedNumber(raw.teamsCount, 2, 8, 5));
+  const rawTeams = Array.isArray(raw.teams) ? raw.teams : [];
+  const teams = Array.from({ length: teamsCount }, (_, index) => {
+    const id = index + 1;
+    const source = rawTeams.find(team => Number(team?.id) === id) || {};
+    const choice = [1, 2, 3].includes(Number(source.currentChoice)) ? Number(source.currentChoice) : null;
+    const teamHistory = Array.isArray(source.history) ? source.history.slice(0, 9) : [];
+    return {
+      id,
+      name: `${id}모둠`,
+      score: boundedNumber(source.score, -10000, 100000),
+      currentChoice: choice,
+      history: teamHistory.map(item => ({
+        turn: Math.round(boundedNumber(item?.turn, 1, 9, 1)),
+        choice: Math.round(boundedNumber(item?.choice, 1, 3, 1)),
+        captured: boundedNumber(item?.captured, 0, LAKE_CAPACITY),
+        penalty: boundedNumber(item?.penalty, 0, 1000)
+      }))
+    };
+  });
+
+  const rawHistory = Array.isArray(raw.history) ? raw.history.slice(0, 9) : [];
+  const history = rawHistory.map((entry, index) => {
+    const turn = Math.round(boundedNumber(entry?.turn, 1, 9, index + 1));
+    const rawDetails = Array.isArray(entry?.teamDetails) ? entry.teamDetails : [];
+    const teamDetails = teams.map(team => {
+      const detail = rawDetails.find(item => Number(item?.teamId) === team.id) || {};
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        turn,
+        choice: Math.round(boundedNumber(detail.choice, 1, 3, 1)),
+        captured: boundedNumber(detail.captured, 0, LAKE_CAPACITY),
+        penalty: boundedNumber(detail.penalty, 0, 1000),
+        finePotential: boundedNumber(detail.finePotential, 0, 1000),
+        cumulative: boundedNumber(detail.cumulative, -10000, 100000),
+        revealed: Boolean(detail.revealed)
+      };
+    });
+    return {
+      turn,
+      phase: getPhase(turn),
+      regulationMaxBoats: Math.round(boundedNumber(entry?.regulationMaxBoats, 1, 2, 1)),
+      totalBoats: boundedNumber(entry?.totalBoats, 0, teamsCount * 3),
+      totalCaptured: boundedNumber(entry?.totalCaptured, 0, LAKE_CAPACITY),
+      remainBeforeReproduction: boundedNumber(entry?.remainBeforeReproduction, 0, LAKE_CAPACITY),
+      reproducedCount: boundedNumber(entry?.reproducedCount, 0, LAKE_CAPACITY),
+      nextTurnStartFish: boundedNumber(entry?.nextTurnStartFish, 0, LAKE_CAPACITY),
+      teamDetails
+    };
+  });
+
+  return {
+    maxTurns: 9,
+    reproductionRate: 80,
+    decimalRule: '1',
+    initialFish: boundedNumber(raw.initialFish, 0, LAKE_CAPACITY, Math.min(teamsCount * FISH_PER_TEAM, LAKE_CAPACITY)),
+    teamsCount,
+    currentTurn: Math.round(boundedNumber(raw.currentTurn, 1, 9, 1)),
+    fishCount: boundedNumber(raw.fishCount, 0, LAKE_CAPACITY),
+    maxFishCount: LAKE_CAPACITY,
+    teams,
+    history,
+    policyParams: {
+      regulationMaxBoats: Math.round(boundedNumber(raw.policyParams?.regulationMaxBoats, 1, 2, 1))
+    },
+    phaseAnnounced: {
+      agreement: Boolean(raw.phaseAnnounced?.agreement),
+      regulation: Boolean(raw.phaseAnnounced?.regulation)
+    },
+    focusedTeamIndex: Math.round(boundedNumber(raw.focusedTeamIndex, 0, teamsCount - 1, 0)),
+    isInputMasked: Boolean(raw.isInputMasked),
+    isGameOver: Boolean(raw.isGameOver),
+    continueAfterDepletion: Boolean(raw.continueAfterDepletion),
+    timeLeft: Math.round(boundedNumber(raw.timeLeft, 0, 3600, 180))
+  };
+}
+
 function readSnapshot(key) {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? normalizeStoredSnapshot(JSON.parse(raw)) : null;
   } catch (error) {
     console.warn('저장된 수업 기록을 읽지 못했습니다.', error);
     return null;
@@ -478,6 +564,18 @@ function adjustStep(inputId, step, min, max) {
 // 6. INITIAL SETUP
 document.getElementById('btn-open-guide').addEventListener('click', openGuideModal);
 document.getElementById('btn-open-rules').addEventListener('click', openRulesModal);
+document.getElementById('setup-form').addEventListener('submit', event => event.preventDefault());
+document.getElementById('btn-teams-minus').addEventListener('click', () => adjustStep('input-teams-count', -1, 2, 8));
+document.getElementById('btn-teams-plus').addEventListener('click', () => adjustStep('input-teams-count', 1, 2, 8));
+document.getElementById('btn-export-capture').addEventListener('click', () => window.print());
+document.getElementById('btn-close-result').addEventListener('click', closeModal);
+document.getElementById('btn-next-turn').addEventListener('click', closeModal);
+document.getElementById('btn-close-agreement').addEventListener('click', closeAgreementModal);
+document.getElementById('btn-close-regulation').addEventListener('click', closeRegulationModal);
+document.getElementById('btn-close-guide-x').addEventListener('click', closeGuideModal);
+document.getElementById('btn-close-guide').addEventListener('click', closeGuideModal);
+document.getElementById('btn-close-rules-x').addEventListener('click', closeRulesModal);
+document.getElementById('btn-close-rules').addEventListener('click', closeRulesModal);
 document.getElementById('btn-resume-game').addEventListener('click', () => {
   const snapshot = readSnapshot(SAVE_KEY);
   if (!snapshot) {
@@ -639,6 +737,12 @@ function syncInputMaskUi() {
 // Bind toggle mask click handler
 document.getElementById('btn-toggle-mask').addEventListener('click', toggleInputMask);
 
+document.getElementById('team-inputs-container').addEventListener('click', event => {
+  const label = event.target.closest('label[data-team-index][data-choice]');
+  if (!label) return;
+  selectTeamChoice(Number(label.dataset.teamIndex), Number(label.dataset.choice));
+});
+
 function setFocusedTeam(index) {
   state.focusedTeamIndex = index;
   document.querySelectorAll('.team-input-row').forEach((row, i) => {
@@ -781,13 +885,13 @@ function renderTeamInputs() {
       <div class="boat-selectors-wrapper">
         <div class="boat-selectors">
           <input type="radio" name="team-choice-${team.id}" id="choice-${team.id}-1" class="boat-radio-btn" value="1">
-          <label for="choice-${team.id}-1" class="boat-label${fineClass(1)}" data-val="1"${fineTitle(1)} onclick="selectTeamChoice(${index}, 1)">1척</label>
+          <label for="choice-${team.id}-1" class="boat-label${fineClass(1)}" data-val="1" data-team-index="${index}" data-choice="1"${fineTitle(1)}>1척</label>
 
           <input type="radio" name="team-choice-${team.id}" id="choice-${team.id}-2" class="boat-radio-btn" value="2">
-          <label for="choice-${team.id}-2" class="boat-label${fineClass(2)}" data-val="2"${fineTitle(2)} onclick="selectTeamChoice(${index}, 2)">2척</label>
+          <label for="choice-${team.id}-2" class="boat-label${fineClass(2)}" data-val="2" data-team-index="${index}" data-choice="2"${fineTitle(2)}>2척</label>
 
           <input type="radio" name="team-choice-${team.id}" id="choice-${team.id}-3" class="boat-radio-btn" value="3">
-          <label for="choice-${team.id}-3" class="boat-label${fineClass(3)}" data-val="3"${fineTitle(3)} onclick="selectTeamChoice(${index}, 3)">3척</label>
+          <label for="choice-${team.id}-3" class="boat-label${fineClass(3)}" data-val="3" data-team-index="${index}" data-choice="3"${fineTitle(3)}>3척</label>
         </div>
         <div class="mask-overlay-layer">🔒 입력 대기</div>
       </div>
@@ -920,7 +1024,7 @@ function renderHistoryTable() {
           td.innerHTML = `
             <div class="anonymous-box">
               <span class="text-muted">? (비밀)</span>
-              <button class="btn-inspect" onclick="revealHistorySecret(${hist.turn}, ${t.id})">🔍 조사</button>
+              <button class="btn-inspect" data-history-turn="${hist.turn}" data-team-id="${t.id}">🔍 조사</button>
             </div>
             <span class="text-sm text-muted">+?</span>
           `;
@@ -1219,7 +1323,7 @@ function showTurnResultModal(hist) {
       choiceText = `
         <div class="anonymous-box">
           <span class="text-muted">? (비밀)</span>
-          <button class="btn-inspect" onclick="revealModalSecret(${team.teamId})">🔍 조사하기</button>
+          <button class="btn-inspect" data-modal-team-id="${team.teamId}">🔍 조사하기</button>
         </div>
       `;
       capturedText = `<span class="text-muted">?</span>`;
@@ -1333,9 +1437,9 @@ function renderRegulationConfig() {
     <div class="form-inline">
       <span>각 모둠의 법정 한도는</span>
       <div class="number-stepper" style="height:32px; width:120px;">
-        <button type="button" style="width:30px; height:30px; font-size:1rem;" onclick="adjustRegulationLimit(-1)">-</button>
+        <button type="button" style="width:30px; height:30px; font-size:1rem;" data-regulation-step="-1">-</button>
         <input type="number" id="cfg-reg-max" value="${state.policyParams.regulationMaxBoats}" min="1" max="2" readonly style="font-size:1rem;">
-        <button type="button" style="width:30px; height:30px; font-size:1rem;" onclick="adjustRegulationLimit(1)">+</button>
+        <button type="button" style="width:30px; height:30px; font-size:1rem;" data-regulation-step="1">+</button>
       </div>
       <span>척이며, 적발된 모둠만 초과 1척당 -${REGULATION_FINE_PER_BOAT}점 벌금을 부과받습니다</span>
     </div>
@@ -1791,6 +1895,21 @@ window.revealHistorySecret = function(turnNum, teamId) {
 };
 
 document.getElementById('btn-export-csv').addEventListener('click', exportHistoryCsv);
+document.getElementById('table-history-body').addEventListener('click', event => {
+  const button = event.target.closest('button[data-history-turn][data-team-id]');
+  if (!button) return;
+  window.revealHistorySecret(Number(button.dataset.historyTurn), Number(button.dataset.teamId));
+});
+document.getElementById('modal-team-body').addEventListener('click', event => {
+  const button = event.target.closest('button[data-modal-team-id]');
+  if (!button) return;
+  window.revealModalSecret(Number(button.dataset.modalTeamId));
+});
+document.getElementById('policy-settings-area').addEventListener('click', event => {
+  const button = event.target.closest('button[data-regulation-step]');
+  if (!button) return;
+  adjustRegulationLimit(Number(button.dataset.regulationStep));
+});
 
 // 16. DUAL MONITOR / PRESENTER SCREEN (빔프로젝터 팝업창)
 function openProjectorWindow() {

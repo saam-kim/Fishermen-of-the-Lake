@@ -36,6 +36,16 @@
   --transition-speed: 0.3s;
 }
 
+.site-legal {
+  padding: 12px 20px 20px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.site-legal a {
+  color: var(--text-muted);
+}
+
 /* Base resets */
 * {
   box-sizing: border-box;

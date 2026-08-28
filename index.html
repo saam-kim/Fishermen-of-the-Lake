@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'none'; manifest-src 'self'; upgrade-insecure-requests">
+  <meta name="description" content="공유지의 비극과 자율 협약, 정부 규제의 효과를 체험하는 교실용 모둠 시뮬레이터">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="호수의 어부들: 공유지의 비극 시뮬레이터">
+  <meta property="og:description" content="공유 자원의 남용과 제도 설계를 체험하는 교실용 웹 시뮬레이터">
   <title>호수의 어부들: 공유지의 비극 - 교육용 시뮬레이터</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -18,14 +24,14 @@
           <h2>공유지의 비극 시뮬레이터</h2>
         </div>
         
-        <form id="setup-form" onsubmit="event.preventDefault();">
+        <form id="setup-form">
           <div class="setup-grid">
             <div class="input-group">
               <label for="input-teams-count">👥 모둠 수 (2 ~ 8모둠)</label>
               <div class="number-stepper">
-                <button type="button" onclick="adjustStep('input-teams-count', -1, 2, 8)">-</button>
+                <button type="button" id="btn-teams-minus">-</button>
                 <input type="number" id="input-teams-count" value="5" min="2" max="8" readonly>
-                <button type="button" onclick="adjustStep('input-teams-count', 1, 2, 8)">+</button>
+                <button type="button" id="btn-teams-plus">+</button>
               </div>
             </div>
 
@@ -194,7 +200,7 @@
           <h3>📊 턴별 진행 기록 테이블</h3>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn btn-sm btn-outline" id="btn-export-csv">📥 CSV 저장</button>
-            <button class="btn btn-sm btn-outline" id="btn-export-capture" onclick="window.print()">🖨️ 화면 인쇄 / PDF 저장</button>
+            <button class="btn btn-sm btn-outline" id="btn-export-capture">🖨️ 화면 인쇄 / PDF 저장</button>
           </div>
         </div>
         <div class="table-container">
@@ -227,7 +233,7 @@
       <div class="modal-content glass animate-pop">
         <div class="modal-header">
           <h2>🔔 턴 <span id="modal-turn-num">1</span> 결과 발표</h2>
-          <button class="close-btn" onclick="closeModal()">×</button>
+          <button class="close-btn" id="btn-close-result">×</button>
         </div>
         <div class="modal-body">
           <div class="turn-summary-block">
@@ -266,7 +272,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline btn-large" id="btn-undo-turn">↩️ 이번 턴 되돌리기</button>
-          <button class="btn btn-primary btn-large" onclick="closeModal()">다음 턴 준비하기 ➡️</button>
+          <button class="btn btn-primary btn-large" id="btn-next-turn">다음 턴 준비하기 ➡️</button>
         </div>
       </div>
     </div>
@@ -288,7 +294,7 @@
           </p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-primary btn-full" onclick="closeAgreementModal()">협약 시작하기</button>
+          <button class="btn btn-primary btn-full" id="btn-close-agreement">협약 시작하기</button>
         </div>
       </div>
     </div>
@@ -312,7 +318,7 @@
           </p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-primary btn-full" onclick="closeRegulationModal()">규제 시작하기</button>
+          <button class="btn btn-primary btn-full" id="btn-close-regulation">규제 시작하기</button>
         </div>
       </div>
     </div>
@@ -322,7 +328,7 @@
       <div class="modal-content glass animate-pop" style="max-width: 750px; text-align: left;">
         <div class="modal-header">
           <h2>📖 [호수의 어부들] 시뮬레이션 수업 가이드</h2>
-          <button class="close-btn" onclick="closeGuideModal()">×</button>
+          <button class="close-btn" id="btn-close-guide-x">×</button>
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
           
@@ -365,7 +371,7 @@
 
         </div>
         <div class="modal-footer">
-          <button class="btn btn-primary btn-full" onclick="closeGuideModal()">확인 완료</button>
+          <button class="btn btn-primary btn-full" id="btn-close-guide">확인 완료</button>
         </div>
       </div>
     </div>
@@ -375,7 +381,7 @@
       <div class="modal-content glass animate-pop" style="max-width: 800px; text-align: left;">
         <div class="modal-header">
           <h2>📜 호수의 어부들 : 활동 규칙 설명</h2>
-          <button class="close-btn" onclick="closeRulesModal()">×</button>
+          <button class="close-btn" id="btn-close-rules-x">×</button>
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
           
@@ -421,7 +427,7 @@
 
         </div>
         <div class="modal-footer">
-          <button class="btn btn-primary btn-full" onclick="closeRulesModal()">규칙 확인 완료 🚢</button>
+          <button class="btn btn-primary btn-full" id="btn-close-rules">규칙 확인 완료 🚢</button>
         </div>
       </div>
     </div>
@@ -518,6 +524,10 @@
     </section>
 
   </div>
+
+  <footer class="site-legal">
+    <a href="privacy.html">개인정보 처리 안내</a>
+  </footer>
 
   <script src="app.js"></script>
 </body>

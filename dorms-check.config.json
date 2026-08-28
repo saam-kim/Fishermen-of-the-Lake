@@ -1,0 +1,11 @@
+{
+  "app": {
+    "name": "호수의 어부들",
+    "url": "https://fishermen-of-the-lake.vercel.app/",
+    "stack": "정적 HTML"
+  },
+  "tracks": [
+    "security"
+  ],
+  "ownershipConfirmed": true
+}
