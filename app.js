@@ -1,5 +1,8 @@
 // 1. GAME STATE MANAGEMENT
 const FISH_PER_TEAM = 30; // Initial fish scales with team count to keep balance consistent
+const LAKE_CAPACITY = 200;
+const SAVE_KEY = 'fishermen-of-the-lake-save-v2';
+const UNDO_KEY = 'fishermen-of-the-lake-undo-v2';
 
 const state = {
   // Fixed simulation constants (not teacher-configurable)
@@ -15,7 +18,7 @@ const state = {
   // Game running state
   currentTurn: 1,
   fishCount: 5 * FISH_PER_TEAM,
-  maxFishCount: 5 * FISH_PER_TEAM, // Syncs with initialFish (= teamsCount * FISH_PER_TEAM once the game starts)
+  maxFishCount: LAKE_CAPACITY,
   teams: [],
   history: [],
   // Phase is derived from currentTurn: 1-3 laissez, 4-6 agreement, 7-9 regulation+monitoring
@@ -39,9 +42,92 @@ const state = {
   continueAfterDepletion: false
 };
 
+function createGameSnapshot() {
+  const snapshot = {
+    maxTurns: state.maxTurns,
+    reproductionRate: state.reproductionRate,
+    decimalRule: state.decimalRule,
+    initialFish: state.initialFish,
+    teamsCount: state.teamsCount,
+    currentTurn: state.currentTurn,
+    fishCount: state.fishCount,
+    maxFishCount: state.maxFishCount,
+    teams: state.teams,
+    history: state.history,
+    policyParams: state.policyParams,
+    phaseAnnounced: state.phaseAnnounced,
+    focusedTeamIndex: state.focusedTeamIndex,
+    isInputMasked: state.isInputMasked,
+    isGameOver: state.isGameOver,
+    continueAfterDepletion: state.continueAfterDepletion,
+    timeLeft
+  };
+  return JSON.parse(JSON.stringify(snapshot));
+}
+
+function storeSnapshot(key, snapshot) {
+  try {
+    localStorage.setItem(key, JSON.stringify(snapshot));
+  } catch (error) {
+    console.warn('수업 기록을 브라우저에 저장하지 못했습니다.', error);
+  }
+}
+
+function readSnapshot(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn('저장된 수업 기록을 읽지 못했습니다.', error);
+    return null;
+  }
+}
+
+function saveGameState() {
+  if (!state.teams.length) return;
+  storeSnapshot(SAVE_KEY, createGameSnapshot());
+  updateResumeButton();
+}
+
+function updateResumeButton() {
+  const button = document.getElementById('btn-resume-game');
+  if (!button) return;
+  button.classList.toggle('hidden', !readSnapshot(SAVE_KEY));
+}
+
+function restoreSnapshot(snapshot, { normalizeCompletedTurn = false } = {}) {
+  if (!snapshot || !Array.isArray(snapshot.teams) || !Array.isArray(snapshot.history)) return false;
+
+  Object.assign(state, snapshot, {
+    maxFishCount: LAKE_CAPACITY,
+    projectorWindow: null,
+    policyParams: { regulationMaxBoats: 1, ...snapshot.policyParams },
+    phaseAnnounced: { agreement: false, regulation: false, ...snapshot.phaseAnnounced }
+  });
+  timeLeft = Number.isFinite(snapshot.timeLeft) ? snapshot.timeLeft : 180;
+
+  const lastTurn = state.history[state.history.length - 1];
+  if (normalizeCompletedTurn && lastTurn && lastTurn.turn === state.currentTurn && !state.isGameOver) {
+    state.currentTurn++;
+  }
+
+  document.querySelectorAll('.modal-overlay.active').forEach(modal => modal.classList.remove('active'));
+  hideElement('lake-overlay-msg');
+  document.getElementById('capacity-info-display').textContent = `수용력 ${LAKE_CAPACITY}마리 · 초기 ${state.initialFish}마리`;
+  resetTimer(timeLeft);
+  applyPhaseForTurn(state.currentTurn);
+  syncInputMaskUi();
+  updateGameHeader();
+  renderHistoryTable();
+  showScreen('game-screen');
+  document.getElementById('btn-execute-turn').disabled = false;
+  return true;
+}
+
 // 2. TIMERS & AUDIOS
 let timerInterval = null;
 let timeLeft = 180; // Default 3 mins in seconds
+let isTurnExecuting = false;
 
 // Play synthetic beep sound using Web Audio API
 function playBeep(frequency = 800, duration = 0.15, repeatCount = 1) {
@@ -191,7 +277,7 @@ function animateLake() {
   let startColor, endColor;
   const ratio = state.fishCount / state.maxFishCount;
 
-  if (ratio > 0.8) {
+  if (ratio > 0.7) {
     // Healthy: Bright crystal blue-teal
     startColor = '#1c9fc7';
     endColor = '#0a5c78';
@@ -392,6 +478,17 @@ function adjustStep(inputId, step, min, max) {
 // 6. INITIAL SETUP
 document.getElementById('btn-open-guide').addEventListener('click', openGuideModal);
 document.getElementById('btn-open-rules').addEventListener('click', openRulesModal);
+document.getElementById('btn-resume-game').addEventListener('click', () => {
+  const snapshot = readSnapshot(SAVE_KEY);
+  if (!snapshot) {
+    updateResumeButton();
+    return;
+  }
+  if (restoreSnapshot(snapshot, { normalizeCompletedTurn: true })) {
+    if (state.isGameOver) triggerGameOver();
+    else saveGameState();
+  }
+});
 
 document.getElementById('btn-start-game').addEventListener('click', () => {
   const teamsCountInput = parseInt(document.getElementById('input-teams-count').value);
@@ -399,12 +496,12 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   // Initialize state (maxTurns/reproductionRate/allocation/decimal rule are fixed constants;
   // initial fish scales with team count so the balance holds regardless of class size)
   state.teamsCount = teamsCountInput;
-  const scaledFish = teamsCountInput * FISH_PER_TEAM;
+  const scaledFish = Math.min(teamsCountInput * FISH_PER_TEAM, LAKE_CAPACITY);
   state.initialFish = scaledFish;
-  state.maxFishCount = scaledFish;
   state.fishCount = scaledFish;
+  state.maxFishCount = LAKE_CAPACITY;
   state.policyParams.regulationMaxBoats = 1;
-  document.getElementById('capacity-info-display').textContent = `최대 수용량: ${scaledFish}마리`;
+  document.getElementById('capacity-info-display').textContent = `수용력 ${LAKE_CAPACITY}마리 · 초기 ${scaledFish}마리`;
 
   state.currentTurn = 1;
   state.isGameOver = false;
@@ -447,6 +544,9 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   // Show game screen
   showScreen('game-screen');
 
+  try { localStorage.removeItem(UNDO_KEY); } catch (error) { console.warn(error); }
+  saveGameState();
+
   playBeep(600, 0.15, 2);
 });
 
@@ -454,7 +554,9 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
 window.addEventListener('keydown', (e) => {
   // Check if we are on the game screen and not focusing input element (though all inputs are read-only)
   const gameScreen = document.getElementById('game-screen');
-  if (!gameScreen.classList.contains('active') || state.isGameOver) return;
+  const modalIsOpen = document.querySelector('.modal-overlay.active');
+  const depletionChoiceIsOpen = !document.getElementById('lake-overlay-msg').classList.contains('hidden');
+  if (!gameScreen.classList.contains('active') || state.isGameOver || modalIsOpen || depletionChoiceIsOpen || isTurnExecuting) return;
   
   // Listen to 1, 2, 3 keys
   if (e.key === '1' || e.key === '2' || e.key === '3') {
@@ -511,6 +613,12 @@ window.addEventListener('keydown', (e) => {
 
 function toggleInputMask() {
   state.isInputMasked = !state.isInputMasked;
+  syncInputMaskUi();
+  playBeep(state.isInputMasked ? 900 : 1100, 0.05);
+  saveGameState();
+}
+
+function syncInputMaskUi() {
   const container = document.getElementById('team-inputs-container');
   const btn = document.getElementById('btn-toggle-mask');
   if (!container || !btn) return;
@@ -520,13 +628,11 @@ function toggleInputMask() {
     btn.textContent = '🔓 비밀 입력 끄기';
     btn.classList.remove('btn-warning');
     btn.classList.add('btn-secondary');
-    playBeep(900, 0.05);
   } else {
     container.classList.remove('mask-active');
     btn.textContent = '🔒 비밀 입력 켜기';
     btn.classList.remove('btn-secondary');
     btn.classList.add('btn-warning');
-    playBeep(1100, 0.05);
   }
 }
 
@@ -670,7 +776,7 @@ function renderTeamInputs() {
       <div class="team-name-badge">
         <span class="team-status-dot"></span>
         <span>${team.name}</span>
-        <span class="team-cumulative-score">(누적: ${formatValue(team.score)}점)</span>
+        <span class="team-cumulative-score">${isRegulationPhase(state.currentTurn) ? '(누적 점수 비공개)' : `(누적: ${formatValue(team.score)}점)`}</span>
       </div>
       <div class="boat-selectors-wrapper">
         <div class="boat-selectors">
@@ -704,13 +810,13 @@ function renderTeamInputs() {
 // Applies the lake health text/color to a given badge element based on the fish ratio
 function applyLakeStatusStyle(badgeEl, ratio) {
   badgeEl.className = 'lake-header-stat-value badge';
-  if (ratio > 0.8) {
+  if (ratio > 0.7) {
     badgeEl.textContent = '풍부함 🌿';
     badgeEl.classList.add('text-success');
-  } else if (ratio > 0.5) {
+  } else if (ratio > 0.4) {
     badgeEl.textContent = '감소 중 ⚠️';
     badgeEl.classList.add('text-warning');
-  } else if (ratio > 0.2) {
+  } else if (ratio > 0.15) {
     badgeEl.textContent = '위험 🚨';
     badgeEl.style.color = '#f97316'; // orange
   } else if (ratio > 0.0) {
@@ -816,19 +922,13 @@ function renderHistoryTable() {
               <span class="text-muted">? (비밀)</span>
               <button class="btn-inspect" onclick="revealHistorySecret(${hist.turn}, ${t.id})">🔍 조사</button>
             </div>
-            <span class="text-sm text-success">+${formatValue(teamHist.captured)}</span>
+            <span class="text-sm text-muted">+?</span>
           `;
         } else {
           // Normal display or revealed monitoring
           let badgeHtml = `${teamHist.choice}척`;
 
-          if (teamHist.choice === 3) {
-            badgeHtml = `<span class="badge-greedy">👿 3척 (과잉)</span>`;
-          } else if (teamHist.choice === 1) {
-            badgeHtml = `<span class="badge-coop">🌱 1척 (상생)</span>`;
-          } else {
-            badgeHtml = `⛵ 2척`;
-          }
+          badgeHtml = `⛵ ${teamHist.choice}척`;
 
           const penaltyText = teamHist.penalty > 0 ? `<br><span class="text-sm text-danger">벌금-${teamHist.penalty}</span>` : '';
 
@@ -852,8 +952,30 @@ function renderHistoryTable() {
 }
 
 // 9. TURN CALCULATION LOGIC
+function allocateScarceCatch(totalFish, teams, totalBoats) {
+  const totalTenths = Math.round(totalFish * 10);
+  const allocations = teams.map(team => {
+    const exactTenths = totalBoats > 0 ? totalTenths * (team.currentChoice / totalBoats) : 0;
+    const baseTenths = Math.floor(exactTenths);
+    return { teamId: team.id, tenths: baseTenths, remainder: exactTenths - baseTenths };
+  });
+
+  let remainingTenths = totalTenths - allocations.reduce((sum, item) => sum + item.tenths, 0);
+  allocations
+    .sort((a, b) => b.remainder - a.remainder || a.teamId - b.teamId)
+    .forEach(item => {
+      if (remainingTenths > 0) {
+        item.tenths++;
+        remainingTenths--;
+      }
+    });
+
+  return new Map(allocations.map(item => [item.teamId, item.tenths / 10]));
+}
+
 document.getElementById('btn-execute-turn').addEventListener('click', () => {
-  if (state.isGameOver) return;
+  const depletionChoiceIsOpen = !document.getElementById('lake-overlay-msg').classList.contains('hidden');
+  if (state.isGameOver || isTurnExecuting || document.querySelector('.modal-overlay.active') || depletionChoiceIsOpen) return;
 
   // 1. Verify inputs
   const unentered = state.teams.filter(t => t.currentChoice === null);
@@ -864,6 +986,10 @@ document.getElementById('btn-execute-turn').addEventListener('click', () => {
     if (firstUnenteredIdx !== -1) setFocusedTeam(firstUnenteredIdx);
     return;
   }
+
+  isTurnExecuting = true;
+  document.getElementById('btn-execute-turn').disabled = true;
+  storeSnapshot(UNDO_KEY, createGameSnapshot());
 
   // 2. Main metrics
   const totalBoats = state.teams.reduce((sum, t) => sum + t.currentChoice, 0);
@@ -888,13 +1014,16 @@ document.getElementById('btn-execute-turn').addEventListener('click', () => {
 
   // Whether the lake had enough fish to satisfy everyone's full desired catch this turn
   const isScarce = currentFish < rawTargetCapture;
+  const scarceAllocations = isScarce
+    ? allocateScarceCatch(actualCaptured, state.teams, totalBoats)
+    : null;
 
   state.teams.forEach(team => {
     const choice = team.currentChoice;
     // Not scarce: each team gets its full desired catch (boats * 5).
     // Scarce: the remaining fish are rationed proportionally to boats launched.
     let finalCaptured = isScarce
-      ? (totalBoats > 0 ? currentFish * (choice / totalBoats) : 0)
+      ? scarceAllocations.get(team.id)
       : choice * 5;
 
     // Apply decimal formatting logic
@@ -970,7 +1099,8 @@ document.getElementById('btn-execute-turn').addEventListener('click', () => {
   // 4. Fish Reproduction logic
   let reproduced = 0;
   if (remainBeforeRepro > 0) {
-    reproduced = remainBeforeRepro * (state.reproductionRate / 100);
+    const potentialReproduction = remainBeforeRepro * (state.reproductionRate / 100);
+    reproduced = Math.min(potentialReproduction, state.maxFishCount - remainBeforeRepro);
   }
   
   // Format variables
@@ -978,9 +1108,7 @@ document.getElementById('btn-execute-turn').addEventListener('click', () => {
   reproduced = parseFloat(formatValue(reproduced));
   
   let nextTurnStartFish = remainBeforeRepro + reproduced;
-  if (nextTurnStartFish > state.maxFishCount) {
-    nextTurnStartFish = state.maxFishCount;
-  }
+  nextTurnStartFish = Math.min(nextTurnStartFish, state.maxFishCount);
   nextTurnStartFish = parseFloat(formatValue(nextTurnStartFish));
 
   // Update state fishCount
@@ -1017,6 +1145,8 @@ document.getElementById('btn-execute-turn').addEventListener('click', () => {
 
   // Reset inputs for next turn
   state.teams.forEach(t => t.currentChoice = null);
+  saveGameState();
+  isTurnExecuting = false;
   
   // Trigger sound effect for turn result
   if (isDepleted) {
@@ -1036,10 +1166,10 @@ function showTurnResultModal(hist) {
   let gaugeClass = 'healthy';
   let gaugeLabel = '안정적 🌿';
   
-  if (ratio > 0.8) {
+  if (ratio > 0.7) {
     gaugeClass = 'healthy';
     gaugeLabel = '풍부함 🌿';
-  } else if (ratio > 0.5) {
+  } else if (ratio > 0.4) {
     gaugeClass = 'warning';
     gaugeLabel = '감소 중 ⚠️';
   } else if (ratio > 0.15) {
@@ -1096,13 +1226,7 @@ function showTurnResultModal(hist) {
       penaltyText = `<span class="text-muted">?</span>`;
     } else {
       // Normal badge styling
-      if (team.choice === 3) {
-        choiceText = `<span class="badge-greedy">👿 3척 (과잉)</span>`;
-      } else if (team.choice === 1) {
-        choiceText = `<span class="badge-coop">🌱 1척 (상생)</span>`;
-      } else {
-        choiceText = `⛵ 2척`;
-      }
+      choiceText = `⛵ ${team.choice}척`;
       penaltyText = team.penalty > 0 ? `<span class="text-danger">-${team.penalty}점</span>` : `<span class="text-muted">없음</span>`;
     }
 
@@ -1111,7 +1235,7 @@ function showTurnResultModal(hist) {
       <td>${choiceText}</td>
       <td class="text-success">+${capturedText}</td>
       <td>${penaltyText}</td>
-      <td><span class="text-warning">${formatValue(team.cumulative)}점</span></td>
+      <td><span class="text-warning">${hist.phase === 'regulation' && !team.revealed ? '?' : `${formatValue(team.cumulative)}점`}</span></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1133,6 +1257,7 @@ function showModal(modalId) {
 
 function closeModal() {
   document.getElementById('result-modal').classList.remove('active');
+  document.getElementById('btn-execute-turn').disabled = false;
   
   // Trigger game end checks or depletion warnings
   const isDepleted = state.fishCount <= 0;
@@ -1157,7 +1282,21 @@ function closeModal() {
 
   // Sync projector screen
   updateProjectorView();
+  saveGameState();
 }
+
+function undoLastTurn() {
+  const snapshot = readSnapshot(UNDO_KEY);
+  if (!snapshot) return;
+  if (restoreSnapshot(snapshot)) {
+    try { localStorage.removeItem(UNDO_KEY); } catch (error) { console.warn(error); }
+    isTurnExecuting = false;
+    saveGameState();
+    playBeep(520, 0.1, 2);
+  }
+}
+
+document.getElementById('btn-undo-turn').addEventListener('click', undoLastTurn);
 
 // Agreements overlay modal
 function openAgreementModal() {
@@ -1190,15 +1329,15 @@ function closeRulesModal() {
 function renderRegulationConfig() {
   const box = document.getElementById('policy-settings-area');
   box.innerHTML = `
-    <label>⚖️ 정부 규제 : 권장 출항 척수 한도 (초과 시 벌금)</label>
+    <label>⚖️ 정부 규제 : 법정 출항 척수 한도 (위반 적발 시 벌금)</label>
     <div class="form-inline">
-      <span>각 모둠은 최대</span>
+      <span>각 모둠의 법정 한도는</span>
       <div class="number-stepper" style="height:32px; width:120px;">
         <button type="button" style="width:30px; height:30px; font-size:1rem;" onclick="adjustRegulationLimit(-1)">-</button>
         <input type="number" id="cfg-reg-max" value="${state.policyParams.regulationMaxBoats}" min="1" max="2" readonly style="font-size:1rem;">
         <button type="button" style="width:30px; height:30px; font-size:1rem;" onclick="adjustRegulationLimit(1)">+</button>
       </div>
-      <span>척까지 권장되며, 적발된 모둠만 초과 1척당 -${REGULATION_FINE_PER_BOAT}점 벌금을 부과받습니다</span>
+      <span>척이며, 적발된 모둠만 초과 1척당 -${REGULATION_FINE_PER_BOAT}점 벌금을 부과받습니다</span>
     </div>
   `;
 }
@@ -1210,6 +1349,7 @@ function adjustRegulationLimit(step) {
   state.policyParams.regulationMaxBoats = val;
   document.getElementById('cfg-reg-max').value = val;
   renderTeamInputs(); // refresh button disabled states
+  saveGameState();
 }
 
 // Regulation phase announcement modal (auto-shown once when turn 7 begins)
@@ -1316,6 +1456,7 @@ function triggerGameOver() {
   });
 
   showScreen('result-screen');
+  saveGameState();
   playBeep(880, 0.2, 3);
 }
 
@@ -1331,6 +1472,7 @@ document.getElementById('btn-continue-depleted').addEventListener('click', () =>
     applyPhaseForTurn(state.currentTurn);
     updateGameHeader();
   }
+  saveGameState();
 });
 
 document.getElementById('btn-end-depleted').addEventListener('click', () => {
@@ -1362,17 +1504,22 @@ document.getElementById('btn-restart-keep-settings').addEventListener('click', (
   hideElement('lake-overlay-msg');
 
   showScreen('game-screen');
+  try { localStorage.removeItem(UNDO_KEY); } catch (error) { console.warn(error); }
+  saveGameState();
   playBeep(600, 0.15, 2);
 });
 
 document.getElementById('btn-restart-fresh').addEventListener('click', () => {
   // Go back to setup screen
   showScreen('setup-screen');
+  updateResumeButton();
 });
 
 document.getElementById('btn-home-icon').addEventListener('click', () => {
-  if (confirm("정말로 메인 설정 화면으로 나가시겠습니까? 진행 중인 기록은 모두 사라집니다.")) {
+  if (confirm("설정 화면으로 이동하시겠습니까? 현재 기록은 자동 저장되어 이어서 진행할 수 있습니다.")) {
+    saveGameState();
     showScreen('setup-screen');
+    updateResumeButton();
   }
 });
 
@@ -1496,6 +1643,48 @@ function formatValue(val) {
   }
 }
 
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function exportHistoryCsv() {
+  if (!state.history.length) {
+    alert('저장할 턴 기록이 없습니다.');
+    return;
+  }
+
+  const headers = ['턴', '정책', '총 배 수', '총 포획량', '남은 물고기', '번식량', '다음 턴 물고기'];
+  state.teams.forEach(team => {
+    headers.push(`${team.name} 선택`, `${team.name} 포획`, `${team.name} 벌금`, `${team.name} 누적`);
+  });
+
+  const rows = state.history.map(historyEntry => {
+    const row = [
+      historyEntry.turn,
+      PHASE_LABELS[historyEntry.phase],
+      historyEntry.totalBoats,
+      historyEntry.totalCaptured,
+      historyEntry.remainBeforeReproduction,
+      historyEntry.reproducedCount,
+      historyEntry.nextTurnStartFish
+    ];
+    state.teams.forEach(team => {
+      const detail = historyEntry.teamDetails.find(item => item.teamId === team.id);
+      row.push(detail?.choice, detail?.captured, detail?.penalty, detail?.cumulative);
+    });
+    return row;
+  });
+
+  const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `호수의-어부들-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function showElement(id) {
   document.getElementById(id).classList.remove('hidden');
 }
@@ -1520,10 +1709,17 @@ function applyFineIfCaught(team, teamHist) {
   teamHist.penalty = teamHist.finePotential;
   if (team) {
     team.score -= teamHist.penalty;
-    teamHist.cumulative = team.score;
     const teamHistoryEntry = team.history.find(h => h.turn === teamHist.turn);
     if (teamHistoryEntry) teamHistoryEntry.penalty = teamHist.penalty;
+
+    // A late investigation changes every cumulative total from that turn onward.
+    state.history.forEach(historyEntry => {
+      if (historyEntry.turn < teamHist.turn) return;
+      const detail = historyEntry.teamDetails.find(item => item.teamId === teamHist.teamId);
+      if (detail) detail.cumulative -= teamHist.penalty;
+    });
   }
+  saveGameState();
 }
 
 window.revealModalSecret = function(teamId) {
@@ -1552,14 +1748,7 @@ window.revealModalSecret = function(teamId) {
         const penaltyCol = tr.querySelector('td:nth-child(4)');
         const cumulativeCol = tr.querySelector('td:nth-child(5)');
 
-        let badgeHtml = '';
-        if (teamHist.choice === 3) {
-          badgeHtml = `<span class="badge-greedy">👿 3척 (과잉)</span>`;
-        } else if (teamHist.choice === 1) {
-          badgeHtml = `<span class="badge-coop">🌱 1척 (상생)</span>`;
-        } else {
-          badgeHtml = `⛵ 2척`;
-        }
+        const badgeHtml = `⛵ ${teamHist.choice}척`;
 
         // Reveal with pulse animation wrapper
         choiceCol.innerHTML = `<div class="anonymous-box revealed-pulse">${badgeHtml}</div>`;
@@ -1600,6 +1789,8 @@ window.revealHistorySecret = function(turnNum, teamId) {
     renderTeamInputs();
   }
 };
+
+document.getElementById('btn-export-csv').addEventListener('click', exportHistoryCsv);
 
 // 16. DUAL MONITOR / PRESENTER SCREEN (빔프로젝터 팝업창)
 function openProjectorWindow() {
@@ -1754,6 +1945,11 @@ function syncProjectorDOM() {
     const projBtn = mainCloned.querySelector('#btn-open-projector');
     if (projBtn) projBtn.remove();
 
+    const exportCsvBtn = mainCloned.querySelector('#btn-export-csv');
+    if (exportCsvBtn) exportCsvBtn.remove();
+    const exportPrintBtn = mainCloned.querySelector('#btn-export-capture');
+    if (exportPrintBtn) exportPrintBtn.remove();
+
     const timerControls = mainCloned.querySelector('.timer-controls');
     if (timerControls) timerControls.remove();
     
@@ -1854,7 +2050,10 @@ document.getElementById('btn-header-rules').addEventListener('click', openRulesM
 
 // Auto close popup on parent page unload
 window.addEventListener('beforeunload', () => {
+  saveGameState();
   if (state.projectorWindow && !state.projectorWindow.closed) {
     state.projectorWindow.close();
   }
 });
+
+updateResumeButton();

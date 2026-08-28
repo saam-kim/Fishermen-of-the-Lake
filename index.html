@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>호수의 어부들: 공유지의 비극 - 교육용 시뮬레이터</title>
-  <!-- Google Fonts for premium typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -44,6 +40,9 @@
             </button>
             <button type="button" class="btn btn-primary btn-large" id="btn-start-game" style="flex: 1.5; min-width: 200px; white-space: nowrap;">
               시뮬레이션 시작하기 🚢
+            </button>
+            <button type="button" class="btn btn-warning btn-large hidden" id="btn-resume-game" style="flex: 1.5; min-width: 200px; white-space: nowrap;">
+              💾 이전 수업 이어하기
             </button>
           </div>
         </form>
@@ -99,7 +98,7 @@
                 <span class="lake-header-stat-label">건강도</span>
                 <span class="lake-header-stat-value badge text-success" id="display-lake-status-inline">풍부함</span>
               </span>
-              <span class="capacity-info" id="capacity-info-display">최대 수용량: 150마리</span>
+              <span class="capacity-info" id="capacity-info-display">수용력 200마리 · 초기 150마리</span>
             </div>
           </div>
           <div class="canvas-container">
@@ -193,9 +192,10 @@
       <footer class="history-section glass">
         <div class="section-header">
           <h3>📊 턴별 진행 기록 테이블</h3>
-          <button class="btn btn-sm btn-outline" id="btn-export-capture" onclick="window.print()">
-            🖨️ 화면 인쇄 / PDF 저장
-          </button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-sm btn-outline" id="btn-export-csv">📥 CSV 저장</button>
+            <button class="btn btn-sm btn-outline" id="btn-export-capture" onclick="window.print()">🖨️ 화면 인쇄 / PDF 저장</button>
+          </div>
         </div>
         <div class="table-container">
           <table class="history-table" id="table-history">
@@ -265,6 +265,7 @@
           </div>
         </div>
         <div class="modal-footer">
+          <button class="btn btn-outline btn-large" id="btn-undo-turn">↩️ 이번 턴 되돌리기</button>
           <button class="btn btn-primary btn-large" onclick="closeModal()">다음 턴 준비하기 ➡️</button>
         </div>
       </div>
@@ -302,7 +303,7 @@
           <p class="agreement-announcement">
             📢 <strong>교사 안내:</strong><br>
             "이제부터 정부가 개입합니다.<br>
-            모든 모둠은 <strong id="regulation-modal-max">1척</strong>까지만 출항하도록 권고됩니다.<br>
+            모든 모둠의 법정 출항 한도는 <strong id="regulation-modal-max">1척</strong>입니다.<br>
             결과 발표 시 각 모둠이 실제로 낸 척수는 <strong>비공개(?)</strong> 처리되며,<br>
             초과 출항한 모둠이라도 <strong>적발되지 않으면 벌금을 물지 않습니다.</strong>"
           </p>
@@ -347,7 +348,7 @@
               </div>
               <div style="background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.05);">
                 <strong style="color: #34d399;">3단계 (7~9턴) : 정부 규제 &amp; 감시 실패 (제도 보완)</strong>
-                <p style="margin-top: 4px; color: #cbd5e1;">7턴이 시작되면 정부 규제·감시 실패 안내 팝업이 자동으로 뜹니다. 권장 출항 척수(1~2척, 교사가 조절 가능)를 초과해도 실제 척수는 결과에서 비공개(?) 처리되어 일부만 무작위로 적발됩니다. <strong>적발된 모둠만</strong> 초과 1척당 -7점의 벌금을 물고, 적발되지 않으면 벌금이 없습니다 — 규제만으로는 부족하고 감시(적발)가 뒷받침되어야 제도가 실효성을 갖는다는 점을 보여줍니다.</p>
+                <p style="margin-top: 4px; color: #cbd5e1;">7턴이 시작되면 정부 규제·감시 실패 안내 팝업이 자동으로 뜹니다. 법정 출항 한도(1~2척, 교사가 조절 가능)를 위반할 수는 있지만 실제 척수는 결과에서 비공개(?) 처리되어 일부만 무작위로 적발됩니다. <strong>적발된 모둠만</strong> 초과 1척당 -7점의 벌금을 물고, 적발되지 않으면 벌금이 없습니다 — 규제만으로는 부족하고 감시(적발)가 뒷받침되어야 제도가 실효성을 갖는다는 점을 보여줍니다.</p>
               </div>
             </div>
           </div>
@@ -382,8 +383,8 @@
             <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 18px; border-radius: 12px;">
               <h3 style="color: #38bdf8; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">🐠 1. 호수와 물고기 (자연 자원)</h3>
               <ul style="padding-left: 18px; line-height: 1.6; color: #cbd5e1; font-size: 0.92rem;">
-                <li>호수의 초기 물고기 수는 <strong>모둠 수 × 30마리</strong>로 결정됩니다(예: 5모둠이면 150마리). 모둠이 많을수록 호수도 커져서 학급 규모와 상관없이 같은 긴장감을 유지합니다.</li>
-                <li>호수가 감당할 수 있는 최대 물고기 수(환경 수용력)는 초기 물고기 수와 같습니다.</li>
+                <li>호수의 초기 물고기 수는 <strong>모둠 수 × 30마리</strong>로 계산하되 환경 수용력 200마리를 넘지 않습니다(예: 5모둠이면 150마리, 8모둠이면 200마리).</li>
+                <li>호수의 환경 수용력은 <strong>200마리</strong>입니다. 번식 후 개체수는 200마리를 넘지 않습니다.</li>
                 <li><strong>번식 단계 (턴 종료 시)</strong>: 어획 후 호수에 남은 물고기는 스스로 번식하여 <strong>80%가 증가</strong>합니다.</li>
               </ul>
             </div>
@@ -413,7 +414,7 @@
               <ul style="padding-left: 18px; line-height: 1.6; color: #cbd5e1; font-size: 0.92rem;">
                 <li><strong>1~3턴 자유 방임</strong>: 어떤 법도 없습니다. 최대 3척까지 자유 출항합니다.</li>
                 <li><strong>4~6턴 자율 협약</strong>: 모둠들 간 1척만 출항하자는 도덕적 상생 신사 약속을 맺습니다. (강제력 없음)</li>
-                <li><strong>7~9턴 정부 규제·감시 실패</strong>: 권장 출항 척수(1~2척)를 초과해도 실제 척수는 결과에서 비공개(?) 처리되며, 무작위 감시 또는 교사의 직접 조사로 <strong>적발된 모둠만</strong> 초과 1척당 -7점 벌금을 뭅니다.</li>
+                <li><strong>7~9턴 정부 규제·감시 실패</strong>: 법정 출항 한도(1~2척)를 위반할 수 있으며 실제 척수는 결과에서 비공개(?) 처리됩니다. 무작위 감시 또는 교사의 직접 조사로 <strong>적발된 모둠만</strong> 초과 1척당 -7점 벌금을 뭅니다.</li>
               </ul>
             </div>
           </div>
@@ -430,7 +431,7 @@
       <div class="result-card glass">
         <div class="result-header">
           <h1>🏆 시뮬레이션 최종 결과 분석</h1>
-          <p class="subtitle" id="result-game-meta">총 6턴 진행 / 최종 호수 상태: 고갈</p>
+          <p class="subtitle" id="result-game-meta">총 9턴 진행 / 최종 호수 상태: 고갈</p>
         </div>
 
         <div class="result-dashboard">
@@ -462,11 +463,11 @@
                 <span class="stat-li-val text-success" id="result-least-departed">3모둠 (6척)</span>
               </li>
               <li>
-                <span class="stat-li-label">🤝 가장 협력적인 턴</span>
+                <span class="stat-li-label">⬇️ 총 출항이 가장 적은 턴</span>
                 <span class="stat-li-val" id="result-most-cooperative-turn">2턴 (총 5척 출항)</span>
               </li>
               <li>
-                <span class="stat-li-label">🔥 가장 과잉 출항이 심한 턴</span>
+                <span class="stat-li-label">⬆️ 총 출항이 가장 많은 턴</span>
                 <span class="stat-li-val text-danger" id="result-most-greedy-turn">4턴 (총 15척 출항)</span>
               </li>
             </ul>
