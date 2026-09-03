@@ -4,18 +4,18 @@
 :root {
   --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
   
-  /* Deep-lake classroom palette */
+  /* Question Repair Shop-inspired classroom palette */
   --bg-gradient:
-    radial-gradient(circle at 15% 0%, rgba(20, 184, 166, 0.16), transparent 32%),
-    radial-gradient(circle at 90% 12%, rgba(56, 189, 248, 0.12), transparent 28%),
-    linear-gradient(150deg, #061521 0%, #0a2231 52%, #0d2a38 100%);
-  --panel-bg: rgba(8, 29, 43, 0.84);
-  --panel-bg-strong: rgba(8, 25, 38, 0.96);
-  --panel-border: rgba(148, 210, 222, 0.16);
-  --panel-border-strong: rgba(103, 232, 249, 0.28);
-  --text-main: #f3f8fa;
-  --text-muted: #a8bfca;
-  --text-inverse: #07151f;
+    radial-gradient(1100px 560px at 8% -10%, rgba(37, 99, 235, 0.13), transparent 60%),
+    radial-gradient(850px 460px at 100% 0%, rgba(14, 165, 233, 0.1), transparent 55%),
+    linear-gradient(155deg, #edf3fd 0%, #f7f9fd 50%, #ffffff 100%);
+  --panel-bg: rgba(255, 255, 255, 0.94);
+  --panel-bg-strong: #ffffff;
+  --panel-border: #e3eaf3;
+  --panel-border-strong: #bfdbfe;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
 
   /* Lake States (Blue/Green -> Orange -> Red -> Black/Gray) */
   --lake-healthy-start: #0ea5e9;
@@ -28,17 +28,17 @@
   --lake-dead-end: #334155;
 
   /* Button & Alert Colors */
-  --btn-primary: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
-  --btn-primary-hover: linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
-  --btn-secondary: rgba(255, 255, 255, 0.1);
-  --btn-secondary-hover: rgba(255, 255, 255, 0.2);
+  --btn-primary: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --btn-primary-hover: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --btn-secondary: #f1f5f9;
+  --btn-secondary-hover: #e2e8f0;
   --btn-danger: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
   
-  --accent-gold: #f6c96b;
-  --accent-silver: #cbd5e1;
-  --accent-bronze: #fb923c;
-  --accent-blue: #67e8f9;
-  --accent-teal: #5eead4;
+  --accent-gold: #d97706;
+  --accent-silver: #64748b;
+  --accent-bronze: #c2410c;
+  --accent-blue: #2563eb;
+  --accent-teal: #0f766e;
 
   --transition-speed: 0.3s;
 }
@@ -94,11 +94,11 @@ body {
 /* Glassmorphism utility */
 .glass {
   background: var(--panel-bg);
-  backdrop-filter: blur(22px) saturate(120%);
-  -webkit-backdrop-filter: blur(22px) saturate(120%);
+  backdrop-filter: blur(18px) saturate(110%);
+  -webkit-backdrop-filter: blur(18px) saturate(110%);
   border: 1px solid var(--panel-border);
   border-radius: 24px;
-  box-shadow: 0 22px 55px rgba(0, 8, 15, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  box-shadow: 0 12px 34px rgba(30, 64, 175, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 /* Typography & Helpers */
@@ -141,17 +141,17 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary:hover:not(:disabled) {
   background: var(--btn-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(20, 184, 166, 0.22);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(190, 220, 228, 0.2);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   color: var(--text-main);
 }
 .btn-outline:hover:not(:disabled) {
-  background: rgba(103, 232, 249, 0.08);
-  border-color: rgba(103, 232, 249, 0.32);
+  background: #f8fafc;
+  border-color: #93c5fd;
 }
 
 .btn-warning {
@@ -247,7 +247,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(103, 232, 249, 0.72);
+  outline: 3px solid rgba(59, 130, 246, 0.45);
   outline-offset: 3px;
 }
 
@@ -1620,6 +1620,345 @@ input[type=number]::-webkit-outer-spin-button {
 /* Ensure relative position on row for absolute indicator */
 .team-input-row {
   position: relative;
+}
+
+/* 2026 light classroom theme — aligned with 질문수리소 */
+.text-danger { color: #dc2626 !important; }
+.text-success { color: #059669 !important; }
+.text-warning { color: #b45309 !important; }
+
+.btn-outline {
+  color: #475569;
+}
+
+.btn-icon {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.btn-icon:hover {
+  background: #e2e8f0;
+}
+
+.btn-light {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+#btn-open-guide,
+#btn-open-projector {
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+}
+
+#btn-open-rules,
+#btn-header-rules {
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+.setup-card::before {
+  background: linear-gradient(90deg, transparent, #2563eb 28%, #38bdf8 72%, transparent);
+}
+
+.setup-header h1 {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 48%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.setup-header h2 {
+  color: #64748b;
+}
+
+.setup-header .logo-icon {
+  background: linear-gradient(145deg, #eff6ff, #ecfeff);
+  border-color: #dbeafe;
+  box-shadow: inset 0 1px 0 #ffffff, 0 14px 28px rgba(37, 99, 235, 0.1);
+}
+
+.input-group label,
+.timer-title,
+.team-results-block h3,
+.question-card p {
+  color: #334155;
+}
+
+.number-stepper,
+.input-group select {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.number-stepper button {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-right: 1px solid #dbeafe;
+  border-left: 1px solid #dbeafe;
+}
+
+.number-stepper button:hover {
+  background: #dbeafe;
+}
+
+.number-stepper input {
+  color: #0f172a;
+}
+
+.game-header {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.brand-title {
+  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 65%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.current-policy-tag {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.stat-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.stat-box.border-accent {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.lesson-progress-track,
+.leaderboard-bar-outer,
+.lake-gauge-outer {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.lesson-progress-fill,
+.leaderboard-bar-inner {
+  background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%);
+}
+
+.lake-card-header h3,
+.panel-card-header h3,
+.section-header h3 {
+  color: #0f172a;
+}
+
+.capacity-info,
+.lake-header-stat-label,
+.shortcut-tip,
+.stat-label {
+  color: #64748b;
+}
+
+.shortcut-tip {
+  color: #2563eb;
+}
+
+.timer-section {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.timer-clock {
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.panel-card-header,
+.result-header,
+.modal-header {
+  border-color: #e2e8f0;
+}
+
+.team-input-row {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.team-input-row.focused {
+  background: #eff6ff;
+  border-color: #60a5fa;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.1);
+}
+
+.boat-label {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.boat-label:hover {
+  background: #f8fafc;
+  border-color: #93c5fd;
+}
+
+.boat-radio-btn:checked + .boat-label {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+}
+
+.policy-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.policy-card.active {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+  box-shadow: 0 8px 20px rgba(22, 101, 52, 0.08);
+}
+
+.policy-settings-box {
+  background: #f8fafc;
+  border-color: #bbf7d0;
+  color: #334155;
+}
+
+.policy-settings-box label {
+  color: #047857;
+}
+
+.policy-settings-box input[type="number"] {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.table-container {
+  border-color: #e2e8f0;
+}
+
+.history-table th {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.history-table th,
+.history-table td,
+.modal-team-table th,
+.modal-team-table td {
+  border-color: #e2e8f0;
+}
+
+.history-table tr:hover td {
+  background: #f8fafc;
+}
+
+.modal-overlay {
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.modal-content {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+}
+
+.close-btn {
+  color: #64748b;
+}
+
+.close-btn:hover {
+  color: #0f172a;
+}
+
+.turn-summary-block,
+.result-stat-card,
+.leaderboard-item,
+.question-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.summary-highlight {
+  color: #2563eb;
+}
+
+.next-fish-highlight {
+  color: #047857;
+}
+
+.modal-team-table th {
+  color: #64748b;
+}
+
+.alert-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.agreement-announcement {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #14532d;
+}
+
+.result-card {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.result-header h1 {
+  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 52%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.leaderboard-section h2 {
+  border-left-color: #2563eb;
+}
+
+.discussion-section h2 {
+  border-left-color: #f59e0b;
+}
+
+.question-card strong,
+.q-num {
+  color: #b45309;
+}
+
+.badge-greedy {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.badge-coop {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.anonymous-box {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 
