@@ -1607,7 +1607,7 @@ document.getElementById('btn-restart-fresh').addEventListener('click', () => {
 });
 
 document.getElementById('btn-home-icon').addEventListener('click', () => {
-  if (confirm("설정 화면으로 이동하시겠습니까? 현재 기록은 자동 저장되어 이어서 진행할 수 있습니다.")) {
+  if (confirm("모둠 설정 화면으로 돌아갈까요? 현재 진행 기록은 자동 저장되며, 필요하면 '이전 수업 이어하기'로 다시 열 수 있습니다.")) {
     saveGameState();
     showScreen('setup-screen');
     updateResumeButton();

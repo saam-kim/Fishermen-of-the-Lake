@@ -399,6 +399,21 @@ select:focus-visible {
   gap: 16px;
 }
 
+.btn-back-setup {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.btn-back-setup:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
 .brand-title {
   font-size: 1.55rem;
   background: none;
