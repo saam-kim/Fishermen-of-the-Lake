@@ -193,7 +193,11 @@ function restoreSnapshot(snapshot, { normalizeCompletedTurn = false } = {}) {
   timeLeft = Number.isFinite(snapshot.timeLeft) ? snapshot.timeLeft : 180;
 
   const lastTurn = state.history[state.history.length - 1];
-  if (normalizeCompletedTurn && lastTurn && lastTurn.turn === state.currentTurn && !state.isGameOver) {
+  const hasPendingDepletionChoice = state.fishCount <= 0
+    && !state.continueAfterDepletion
+    && !state.isGameOver;
+  if (normalizeCompletedTurn && lastTurn && lastTurn.turn === state.currentTurn
+      && !state.isGameOver && !hasPendingDepletionChoice) {
     state.currentTurn++;
   }
 
@@ -206,6 +210,7 @@ function restoreSnapshot(snapshot, { normalizeCompletedTurn = false } = {}) {
   updateGameHeader();
   renderHistoryTable();
   showScreen('game-screen');
+  if (hasPendingDepletionChoice) showElement('lake-overlay-msg');
   document.getElementById('btn-execute-turn').disabled = false;
   return true;
 }
@@ -359,37 +364,23 @@ function animateLake() {
   const w = canvas.width;
   const h = canvas.height;
   
-  // Determine water color gradient based on fish abundance (lake healthiness)
-  let startColor, endColor;
+  // Use a calm flat water color that still reflects the lake's health.
+  let waterColor;
   const ratio = state.fishCount / state.maxFishCount;
 
   if (ratio > 0.7) {
-    // Healthy: Bright crystal blue-teal
-    startColor = '#1c9fc7';
-    endColor = '#0a5c78';
+    waterColor = '#0e7490';
   } else if (ratio > 0.4) {
-    // Warning: Fading teal
-    startColor = '#1e7d72';
-    endColor = '#0d4640';
+    waterColor = '#287d8e';
   } else if (ratio > 0.15) {
-    // Danger: Muddy amber-brown
-    startColor = '#8a5a2a';
-    endColor = '#402a12';
+    waterColor = '#8a6a3b';
   } else if (ratio > 0.0) {
-    // Near dead: Dark rust/grey
-    startColor = '#5c3a32';
-    endColor = '#2a1a16';
+    waterColor = '#66575a';
   } else {
-    // Completely depleted: Dead grey
-    startColor = '#3f4550';
-    endColor = '#1c2027';
+    waterColor = '#475569';
   }
 
-  // Draw background gradient on main screen
-  const grad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, Math.max(w, h)/1.2);
-  grad.addColorStop(0, startColor);
-  grad.addColorStop(1, endColor);
-  ctx.fillStyle = grad;
+  ctx.fillStyle = waterColor;
   ctx.fillRect(0, 0, w, h);
 
   // Render grid lines for dynamic visual depth on main screen
@@ -420,11 +411,7 @@ function animateLake() {
     const pw = projectorCanvas.width;
     const ph = projectorCanvas.height;
     
-    // Draw background on projector
-    const pGrad = projectorCtx.createRadialGradient(pw/2, ph/2, 10, pw/2, ph/2, Math.max(pw, ph)/1.2);
-    pGrad.addColorStop(0, startColor);
-    pGrad.addColorStop(1, endColor);
-    projectorCtx.fillStyle = pGrad;
+    projectorCtx.fillStyle = waterColor;
     projectorCtx.fillRect(0, 0, pw, ph);
     
     // Draw grid on projector
