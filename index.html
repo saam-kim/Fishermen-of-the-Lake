@@ -3,13 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'none'; manifest-src 'self'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'none'; manifest-src 'self'; upgrade-insecure-requests">
   <meta name="description" content="공유지의 비극과 자율 협약, 정부 규제의 효과를 체험하는 교실용 모둠 시뮬레이터">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta property="og:type" content="website">
   <meta property="og:title" content="호수의 어부들: 공유지의 비극 시뮬레이터">
   <meta property="og:description" content="공유 자원의 남용과 제도 설계를 체험하는 교실용 웹 시뮬레이터">
+  <meta property="og:image" content="https://fishermen-of-the-lake.vercel.app/og.png">
+  <meta property="og:image:alt" content="깊은 호수 위 어선과 물고기 이동 경로가 표현된 호수의 어부들 시뮬레이터 대표 이미지">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="호수의 어부들: 공유지의 비극 시뮬레이터">
+  <meta name="twitter:description" content="공유 자원의 남용과 제도 설계를 체험하는 교실용 웹 시뮬레이터">
+  <meta name="twitter:image" content="https://fishermen-of-the-lake.vercel.app/og.png">
   <title>호수의 어부들: 공유지의 비극 - 교육용 시뮬레이터</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
