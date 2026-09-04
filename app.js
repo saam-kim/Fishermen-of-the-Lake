@@ -14,6 +14,9 @@ const state = {
 
   // Configurable settings
   teamsCount: 5,
+  displayMode: 'single',
+  lessonMode: 'continuous',
+  comparisonStarted: [],
 
   // Game running state
   currentTurn: 1,
@@ -49,6 +52,9 @@ function createGameSnapshot() {
     decimalRule: state.decimalRule,
     initialFish: state.initialFish,
     teamsCount: state.teamsCount,
+    displayMode: state.displayMode,
+    lessonMode: state.lessonMode,
+    comparisonStarted: state.comparisonStarted,
     currentTurn: state.currentTurn,
     fishCount: state.fishCount,
     maxFishCount: state.maxFishCount,
@@ -139,6 +145,9 @@ function normalizeStoredSnapshot(raw) {
     decimalRule: '1',
     initialFish: boundedNumber(raw.initialFish, 0, LAKE_CAPACITY, Math.min(teamsCount * FISH_PER_TEAM, LAKE_CAPACITY)),
     teamsCount,
+    displayMode: raw.displayMode === 'dual' ? 'dual' : 'single',
+    lessonMode: raw.lessonMode === 'comparison' ? 'comparison' : 'continuous',
+    comparisonStarted: Array.isArray(raw.comparisonStarted) ? raw.comparisonStarted.filter(t => t === 4 || t === 7) : [],
     currentTurn: Math.round(boundedNumber(raw.currentTurn, 1, 9, 1)),
     fishCount: boundedNumber(raw.fishCount, 0, LAKE_CAPACITY),
     maxFishCount: LAKE_CAPACITY,
@@ -186,7 +195,7 @@ function restoreSnapshot(snapshot, { normalizeCompletedTurn = false } = {}) {
 
   Object.assign(state, snapshot, {
     maxFishCount: LAKE_CAPACITY,
-    projectorWindow: null,
+    projectorWindow: state.projectorWindow,
     policyParams: { regulationMaxBoats: 1, ...snapshot.policyParams },
     phaseAnnounced: { agreement: false, regulation: false, ...snapshot.phaseAnnounced }
   });
@@ -206,6 +215,7 @@ function restoreSnapshot(snapshot, { normalizeCompletedTurn = false } = {}) {
   document.getElementById('capacity-info-display').textContent = `수용력 ${LAKE_CAPACITY}마리 · 초기 ${state.initialFish}마리`;
   resetTimer(timeLeft);
   applyPhaseForTurn(state.currentTurn);
+  if (!state.projectorWindow || state.projectorWindow.closed) state.displayMode = 'single';
   syncInputMaskUi();
   updateGameHeader();
   renderHistoryTable();
@@ -436,6 +446,7 @@ function animateLake() {
       const scaleX = pw / w;
       const scaleY = ph / h;
       
+      const fishScale = Math.min(scaleX, scaleY);
       projectorCtx.save();
       projectorCtx.translate(fish.x * scaleX, fish.y * scaleY);
       projectorCtx.rotate(fish.angle);
@@ -443,14 +454,14 @@ function animateLake() {
       // Draw fish shape
       projectorCtx.fillStyle = fish.color;
       projectorCtx.beginPath();
-      projectorCtx.ellipse(0, 0, fish.size * 0.9 * scaleX, (fish.size / 2.2) * 0.9 * scaleY, 0, 0, Math.PI * 2);
+      projectorCtx.ellipse(0, 0, fish.size * 0.9 * fishScale, (fish.size / 2.2) * 0.9 * fishScale, 0, 0, Math.PI * 2);
       projectorCtx.fill();
       
       // Tail
       projectorCtx.beginPath();
-      projectorCtx.moveTo(-fish.size * 0.9 * scaleX, 0);
-      projectorCtx.lineTo(-fish.size * 1.4 * scaleX, -fish.size * 0.45 * scaleY);
-      projectorCtx.lineTo(-fish.size * 1.4 * scaleX, fish.size * 0.45 * scaleY);
+      projectorCtx.moveTo(-fish.size * 0.9 * fishScale, 0);
+      projectorCtx.lineTo(-fish.size * 1.4 * fishScale, -fish.size * 0.45 * fishScale);
+      projectorCtx.lineTo(-fish.size * 1.4 * fishScale, fish.size * 0.45 * fishScale);
       projectorCtx.closePath();
       projectorCtx.fill();
       
@@ -471,6 +482,7 @@ function showScreen(screenId) {
   activeScr.style.display = 'flex';
   setTimeout(() => {
     activeScr.classList.add('active');
+    updateProjectorView();
   }, 10);
   
   if (screenId === 'game-screen') {
@@ -499,6 +511,20 @@ function isRegulationPhase(turn) {
 }
 
 function applyPhaseForTurn(turn) {
+  if (state.lessonMode === 'comparison' && [4, 7].includes(turn) && !state.comparisonStarted.includes(turn)) {
+    state.fishCount = state.initialFish;
+    state.continueAfterDepletion = false;
+    state.comparisonStarted.push(turn);
+    resetTimer(180);
+  }
+  const comparisonNotice = state.lessonMode === 'comparison'
+    ? `정책 비교 실험: 이번 단계는 ${state.initialFish}마리에서 새로 시작합니다. 점수는 누적됩니다.` : '';
+  for (const id of ['agreement-modal', 'regulation-modal']) {
+    let notice = document.querySelector(`#${id} .comparison-notice`);
+    if (!notice) { notice = document.createElement('p'); notice.className = 'comparison-notice alert-info'; document.querySelector(`#${id} .modal-body`).prepend(notice); }
+    notice.textContent = comparisonNotice;
+    notice.classList.toggle('hidden', !comparisonNotice);
+  }
   const phase = getPhase(turn);
   const order = ['laissez', 'agreement', 'regulation'];
   const idx = order.indexOf(phase);
@@ -534,7 +560,8 @@ function applyPhaseForTurn(turn) {
     }
   }
 
-  document.getElementById('active-policy-display').textContent = polDisp;
+  document.getElementById('active-policy-display').textContent = polDisp + (state.lessonMode === 'comparison' ? ' · 독립 호수 비교' : '');
+  document.getElementById('depletion-guidance').textContent = state.lessonMode === 'comparison' ? '이번 실험의 호수는 고갈되었습니다. 다음 정책 실험(4·7턴)은 같은 초기 물고기로 시작합니다.' : '고갈은 되돌아오지 않습니다. 계속 관찰하거나 토론 후 종료하세요. 정책 비교는 설정에서 새 수업으로 시작할 수 있습니다.';
   renderTeamInputs();
 }
 
@@ -578,6 +605,9 @@ document.getElementById('btn-resume-game').addEventListener('click', () => {
 document.getElementById('btn-start-game').addEventListener('click', () => {
   const teamsCountInput = parseInt(document.getElementById('input-teams-count').value);
 
+  state.displayMode = document.getElementById('input-display-mode').value;
+  state.lessonMode = document.getElementById('input-lesson-mode').value;
+
   // Initialize state (maxTurns/reproductionRate/allocation/decimal rule are fixed constants;
   // initial fish scales with team count so the balance holds regardless of class size)
   state.teamsCount = teamsCountInput;
@@ -592,10 +622,11 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   state.isGameOver = false;
   state.continueAfterDepletion = false;
   state.history = [];
+  state.comparisonStarted = [];
   state.phaseAnnounced = { agreement: false, regulation: false };
 
   // Reset Input Masking UI
-  state.isInputMasked = false;
+  state.isInputMasked = state.displayMode === 'single';
   const maskContainer = document.getElementById('team-inputs-container');
   if (maskContainer) maskContainer.classList.remove('mask-active');
   const btnMask = document.getElementById('btn-toggle-mask');
@@ -604,6 +635,8 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
     btnMask.classList.remove('btn-secondary');
     btnMask.classList.add('btn-warning');
   }
+
+  syncInputMaskUi();
 
   // Create Teams
   state.teams = [];
@@ -632,6 +665,7 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   try { localStorage.removeItem(UNDO_KEY); } catch (error) { console.warn(error); }
   saveGameState();
 
+  if (state.displayMode === 'dual') openProjectorWindow();
   playBeep(600, 0.15, 2);
 });
 
@@ -643,8 +677,14 @@ window.addEventListener('keydown', (e) => {
   const depletionChoiceIsOpen = !document.getElementById('lake-overlay-msg').classList.contains('hidden');
   if (!gameScreen.classList.contains('active') || state.isGameOver || modalIsOpen || depletionChoiceIsOpen || isTurnExecuting) return;
   
+  // Preserve browser shortcuts, native controls and editing behavior.
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.target.isContentEditable
+      || e.target.closest('input, select, textarea')) return;
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button, a')) return;
+
   // Listen to 1, 2, 3 keys
   if (e.key === '1' || e.key === '2' || e.key === '3') {
+    e.preventDefault();
     const value = parseInt(e.key);
     selectTeamChoice(state.focusedTeamIndex, value);
   }
@@ -697,6 +737,11 @@ window.addEventListener('keydown', (e) => {
 });
 
 function toggleInputMask() {
+  if (state.displayMode === 'single') {
+    state.isInputMasked = true;
+    syncInputMaskUi();
+    return;
+  }
   state.isInputMasked = !state.isInputMasked;
   syncInputMaskUi();
   playBeep(state.isInputMasked ? 900 : 1100, 0.05);
@@ -708,9 +753,12 @@ function syncInputMaskUi() {
   const btn = document.getElementById('btn-toggle-mask');
   if (!container || !btn) return;
   
+  if (state.displayMode === 'single') state.isInputMasked = true;
+  btn.disabled = state.displayMode === 'single';
+  container.querySelectorAll('.temp-reveal').forEach(row => row.classList.remove('temp-reveal'));
   if (state.isInputMasked) {
     container.classList.add('mask-active');
-    btn.textContent = '🔓 비밀 입력 끄기';
+    btn.textContent = state.displayMode === 'single' ? '🔒 단일 화면 · 값 비공개' : '🔓 비밀 입력 끄기';
     btn.classList.remove('btn-warning');
     btn.classList.add('btn-secondary');
   } else {
@@ -741,6 +789,7 @@ function setFocusedTeam(index) {
       row.classList.remove('focused');
     }
   });
+  updateInputProgress();
 }
 
 function moveInputFocus(direction) {
@@ -775,6 +824,7 @@ function selectTeamChoice(teamIndex, value) {
     
     // Remove pulse styling from execute button
     document.getElementById('btn-execute-turn').classList.remove('pulse-ready');
+    updateInputProgress();
     return;
   }
   
@@ -797,7 +847,7 @@ function selectTeamChoice(teamIndex, value) {
     row.classList.add('entered');
     row.classList.remove('temp-reveal'); // Re-hide choice on new entry
     const layer = row.querySelector('.mask-overlay-layer');
-    if (layer) layer.textContent = '🔒 입력 완료 (클릭하여 확인)';
+    if (layer) layer.textContent = '🔒 입력 완료';
   }
 
   playBeep(900, 0.05);
@@ -810,7 +860,7 @@ function selectTeamChoice(teamIndex, value) {
   }
 
   // Auto advance focus to the next empty team
-  setTimeout(() => {
+  {
     // Check if there are any remaining teams without choice
     let nextIdx = teamIndex + 1;
     if (nextIdx >= state.teamsCount) nextIdx = 0;
@@ -830,7 +880,7 @@ function selectTeamChoice(teamIndex, value) {
     if (!found) {
       setFocusedTeam(nextIdx);
     }
-  }, 100);
+  }
 }
 
 // 8. RENDERERS
@@ -848,12 +898,6 @@ function renderTeamInputs() {
     
     // Clicking anywhere in the row focuses it
     row.addEventListener('click', (e) => {
-      // If clicking mask overlay in mask mode and it's entered, toggle temp-reveal inspect view
-      if (state.isInputMasked && row.classList.contains('entered') && e.target.classList.contains('mask-overlay-layer')) {
-        row.classList.toggle('temp-reveal');
-        playBeep(1100, 0.03);
-        return;
-      }
       setFocusedTeam(index);
     });
 
@@ -891,11 +935,12 @@ function renderTeamInputs() {
       if (rad) rad.checked = true;
       // Change label textual state
       const layer = row.querySelector('.mask-overlay-layer');
-      if (layer) layer.textContent = '🔒 입력 완료 (클릭하여 확인)';
+      if (layer) layer.textContent = '🔒 입력 완료';
     }
   });
   
   state.focusedTeamIndex = 0;
+  updateInputProgress();
 }
 
 // Applies the lake health text/color to a given badge element based on the fish ratio
@@ -1249,6 +1294,7 @@ document.getElementById('btn-execute-turn').addEventListener('click', () => {
 
 // 10. MODAL HANDLING
 function showTurnResultModal(hist) {
+  projectorPage = 0;
   document.getElementById('modal-turn-num').textContent = hist.turn;
   
   // Calculate lake health gauge parameters
@@ -1291,7 +1337,10 @@ function showTurnResultModal(hist) {
   `;
   
   document.getElementById('modal-detail-remain').textContent = `🐟 포획 후 호수에는 ${formatValue(hist.remainBeforeReproduction)}마리만 남았습니다.`;
-  document.getElementById('modal-detail-repro').textContent = `📈 남은 물고기의 ${state.reproductionRate}%인 ${formatValue(hist.reproducedCount)}마리가 번식했습니다.`;
+  const potential = hist.remainBeforeReproduction * state.reproductionRate / 100;
+  document.getElementById('modal-detail-repro').textContent = potential > hist.reproducedCount + 0.05
+    ? `📈 번식 가능량 ${formatValue(potential)}마리 → 수용력 ${LAKE_CAPACITY}마리 제한으로 실제 ${formatValue(hist.reproducedCount)}마리 증가했습니다.`
+    : `📈 남은 물고기의 ${state.reproductionRate}%인 ${formatValue(hist.reproducedCount)}마리가 번식했습니다.`;
   document.getElementById('modal-detail-next').textContent = `✨ 다음 턴 시작 물고기 수는 ${formatValue(hist.nextTurnStartFish)}마리입니다.`;
 
   // Render modal table rows
@@ -1454,10 +1503,12 @@ function closeRegulationModal() {
 
 // 12. GAME OVER & RESULT SUMMARY
 function triggerGameOver() {
+  projectorPage = 0;
+  renderPhaseComparison();
   state.isGameOver = true;
   
   // Metadata mapping
-  document.getElementById('result-game-meta').textContent = `총 ${state.maxTurns}턴 진행 완료 / 호수 생태계: ${state.fishCount <= 0 ? '고갈됨' : '보존됨'}`;
+  document.getElementById('result-game-meta').textContent = `총 ${state.history.length}턴 진행 완료 / 호수 생태계: ${state.fishCount <= 0 ? '고갈됨' : '보존됨'}`;
   
   // Final fish
   const finalFishDisp = document.getElementById('result-final-fish');
@@ -1579,6 +1630,7 @@ document.getElementById('btn-restart-keep-settings').addEventListener('click', (
   state.isGameOver = false;
   state.continueAfterDepletion = false;
   state.history = [];
+  state.comparisonStarted = [];
   state.phaseAnnounced = { agreement: false, regulation: false };
   state.policyParams.regulationMaxBoats = 1;
 
@@ -1745,13 +1797,14 @@ function exportHistoryCsv() {
     return;
   }
 
-  const headers = ['턴', '정책', '총 배 수', '총 포획량', '남은 물고기', '번식량', '다음 턴 물고기'];
+  const headers = ['수업 방식', '턴', '정책', '총 배 수', '총 포획량', '남은 물고기', '번식량', '다음 턴 물고기'];
   state.teams.forEach(team => {
     headers.push(`${team.name} 선택`, `${team.name} 포획`, `${team.name} 벌금`, `${team.name} 누적`);
   });
 
   const rows = state.history.map(historyEntry => {
     const row = [
+      state.lessonMode === 'comparison' ? '정책 비교(4·7턴 초기 호수)' : '연속 진행',
       historyEntry.turn,
       PHASE_LABELS[historyEntry.phase],
       historyEntry.totalBoats,
@@ -1783,6 +1836,11 @@ function showElement(id) {
 function hideElement(id) {
   document.getElementById(id).classList.add('hidden');
 }
+
+const lakeResizeObserver = new ResizeObserver(() => {
+  if (canvas.parentElement.clientWidth && canvas.parentElement.clientHeight) initCanvas();
+});
+lakeResizeObserver.observe(canvas.parentElement);
 
 // Handle browser resize
 window.addEventListener('resize', () => {
@@ -1906,111 +1964,34 @@ function openProjectorWindow() {
   }
   
   // Open blank popup window
-  state.projectorWindow = window.open('', 'TragedyProjector', 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no');
+  state.projectorWindow = window.open('', 'TragedyProjector', 'width=1440,height=900,menubar=no,toolbar=no,location=no,status=no');
   if (!state.projectorWindow) {
+    enterSingleDisplay();
     alert('팝업 차단이 활성화되어 있을 수 있습니다. 브라우저 설정에서 이 사이트의 팝업 허용을 활성화해 주세요!');
     return;
   }
   
-  const doc = state.projectorWindow.document;
+  state.displayMode = 'dual';
+  state.isInputMasked = false;
+  syncInputMaskUi();
+  document.body.classList.add('has-projector');
+  document.getElementById('projector-controls').classList.remove('hidden');
+  const projector = state.projectorWindow;
+  const doc = projector.document;
   doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html lang="ko">
-    <head>
-      <meta charset="UTF-8">
-      <title>호수의 어부들 (빔프로젝터/학생용 화면)</title>
-      <style>
-        body {
-          margin: 0;
-          padding: 0;
-          background: #090d16;
-          color: #f8fafc;
-          font-family: 'Noto Sans KR', sans-serif;
-          overflow-y: auto;
-          box-sizing: border-box;
-        }
-        .projector-body-container {
-          padding: 30px;
-          display: flex;
-          flex-direction: column;
-          gap: 30px;
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-        /* Hide controller panel strictly in projector window */
-        .control-panel {
-          display: none !important;
-        }
-        /* Make lake visualization area full width */
-        .game-main-layout {
-          display: grid;
-          grid-template-columns: 1fr !important;
-          gap: 0 !important;
-        }
-        .lake-card {
-          width: 100% !important;
-        }
-        .canvas-container {
-          height: 480px !important;
-        }
-        canvas {
-          height: 100% !important;
-        }
-        /* Projector specific large font style overrides */
-        .stat-value {
-          font-size: 2.2rem !important;
-        }
-        .timer-clock {
-          font-size: 2.8rem !important;
-        }
-        .history-table th, .history-table td {
-          padding: 18px 12px !important;
-          font-size: 1.1rem !important;
-        }
-        /* Modal tweaks for projector view */
-        .modal-overlay {
-          z-index: 10000 !important;
-        }
-        .modal-content {
-          max-width: 900px !important;
-          width: 90% !important;
-        }
-        /* Discussion card layout overrides */
-        .discussion-grid {
-          grid-template-columns: 1fr 1fr !important;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="projector-body-container">
-        <!-- Will be filled by synchronization -->
-      </div>
-    </body>
-    </html>
-  `);
+  doc.write('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>호수의 어부들 · 학생용 화면</title></head><body class="projector-view"><div class="projector-body-container"></div></body></html>');
+  const style = doc.createElement('style');
+  style.textContent = PROJECTOR_STYLES;
+  doc.head.appendChild(style);
   doc.close();
-  
-  // Clone CSS stylesheets to the projector window
-  const fonts = document.querySelectorAll('link[href*="fonts.googleapis.com"], link[href*="fonts.gstatic.com"]');
-  fonts.forEach(f => doc.head.appendChild(f.cloneNode(true)));
-  
-  const stylesheets = document.querySelectorAll('link[rel="stylesheet"], style');
-  stylesheets.forEach(sheet => {
-    doc.head.appendChild(sheet.cloneNode(true));
-  });
-  
-  // Sync projector DOM elements when ready
-  setTimeout(() => {
-    syncProjectorDOM();
-    initProjectorCanvas();
-  }, 150);
-
-  // Bind close event to reset state
-  state.projectorWindow.addEventListener('beforeunload', () => {
-    state.projectorWindow = null;
+  syncProjectorDOM();
+  initProjectorCanvas();
+  projector.addEventListener('resize', initProjectorCanvas);
+  projector.addEventListener('beforeunload', () => {
+    if (state.projectorWindow === projector) state.projectorWindow = null;
     projectorCanvas = null;
     projectorCtx = null;
+    enterSingleDisplay();
   });
 }
 
@@ -2040,6 +2021,7 @@ function syncProjectorDOM() {
   } else if (gameScreen.classList.contains('active')) {
     // Clone layout structure
     const mainCloned = gameScreen.cloneNode(true);
+    mainCloned.querySelector('#input-progress')?.remove();
     
     // Strip elements not needed for projector
     const controlPanel = mainCloned.querySelector('.control-panel');
@@ -2059,6 +2041,15 @@ function syncProjectorDOM() {
     const timerControls = mainCloned.querySelector('.timer-controls');
     if (timerControls) timerControls.remove();
     
+    mainCloned.querySelectorAll('button, .alert-actions').forEach(element => element.remove());
+    // A compact public history fits alongside the lake; detailed records stay with the teacher.
+    mainCloned.querySelectorAll('.history-table tr').forEach(row => {
+      if (row.cells.length > 1) {
+        Array.from(row.cells).forEach((cell, index) => {
+          if (![0, 1, 3, 6].includes(index)) cell.remove();
+        });
+      } else if (row.cells[0]) row.cells[0].colSpan = 4;
+    });
     pContainer.appendChild(mainCloned);
     
     // Synchronize modal state if active
@@ -2120,6 +2111,8 @@ function syncProjectorDOM() {
     if (footer) footer.remove();
     pContainer.appendChild(clonedRegulation);
   }
+  pContainer.querySelectorAll('button').forEach(button => button.remove());
+  applyProjectorPage();
 }
 
 // Global hook to trigger DOM synchronization when state changes
@@ -2163,3 +2156,90 @@ window.addEventListener('beforeunload', () => {
 });
 
 updateResumeButton();
+
+
+// Classroom controls never expose masked choices on a shared display.
+let projectorPage = 0;
+let projectorPageCount = 1;
+function updateInputProgress() {
+  const panel = document.getElementById('input-progress');
+  if (!panel) return;
+  const entered = state.teams.filter(team => team.currentChoice !== null).length;
+  panel.innerHTML = `<strong>${entered}/${state.teamsCount}모둠 입력 완료</strong><span>현재 ${state.focusedTeamIndex + 1}모둠 · 숫자로 입력/정정</span>`;
+  state.teams.forEach((team, index) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'btn btn-sm btn-outline';
+    button.textContent = `${team.id}모둠 ${team.currentChoice === null ? '대기' : '완료'}`;
+    button.setAttribute('aria-pressed', String(index === state.focusedTeamIndex));
+    button.addEventListener('click', () => setFocusedTeam(index));
+    panel.appendChild(button);
+  });
+}
+function enterSingleDisplay() {
+  state.displayMode = 'single'; state.isInputMasked = true;
+  syncInputMaskUi();
+  document.body.classList.remove('has-projector');
+  document.getElementById('projector-controls').classList.add('hidden');
+  saveGameState();
+}
+document.getElementById('btn-single-display').addEventListener('click', () => {
+  const projector = state.projectorWindow;
+  state.projectorWindow = null;
+  if (projector && !projector.closed) projector.close();
+  enterSingleDisplay();
+});
+function renderPhaseComparison() {
+  const labels = ['자유 방임', '자율 협약', '정부 규제'];
+  const phases = ['laissez', 'agreement', 'regulation'];
+  const panel = document.getElementById('phase-comparison');
+  panel.innerHTML = `<h2>정책별 관찰 결과</h2><p>${state.lessonMode === 'comparison' ? '각 단계의 초기 호수는 동일합니다. 선택과 무작위 적발도 결과에 영향을 줍니다.' : '앞 단계의 자원 상태가 이어지는 연속 실험입니다. 같은 초기 조건의 비교가 아닙니다.'}</p>`;
+  const grid = document.createElement('div'); grid.className = 'phase-summary-grid';
+  phases.forEach((phase, index) => {
+    const history = state.history.filter(h => h.phase === phase);
+    const card = document.createElement('div'); card.className = 'result-stat-card';
+    card.innerHTML = `<h3>${labels[index]}</h3>${history.length ? `<p>${history.length}턴 진행 · 총 어획 ${formatValue(history.reduce((sum,h) => sum+h.totalCaptured,0))}마리</p><strong>종료 호수 ${formatValue(history.at(-1).nextTurnStartFish)}마리</strong>` : '<p>진행하지 않음</p>'}`;
+    grid.appendChild(card);
+  });
+  panel.appendChild(grid);
+}
+function applyProjectorPage() {
+  if (!state.projectorWindow || state.projectorWindow.closed) return;
+  const doc = state.projectorWindow.document;
+  const result = doc.getElementById('projector-result-modal');
+  const final = doc.querySelector('#result-screen.active');
+  let label = '호수 현황';
+  projectorPageCount = 1;
+  if (result) {
+    const rows = [...result.querySelectorAll('#modal-team-body tr')];
+    projectorPageCount = Math.ceil(rows.length / 4);
+    projectorPage = Math.min(projectorPage, projectorPageCount - 1);
+    rows.forEach((row, index) => row.classList.toggle('hidden', Math.floor(index / 4) !== projectorPage));
+    label = `턴 ${state.currentTurn} 결과 · ${projectorPage * 4 + 1}~${Math.min(rows.length, (projectorPage + 1) * 4)}모둠`;
+  } else if (final) {
+    projectorPageCount = 3; projectorPage = Math.min(projectorPage, 2);
+    const sections = [final.querySelector('#phase-comparison'), final.querySelector('.result-dashboard'), final.querySelector('.leaderboard-section'), final.querySelector('.discussion-section')];
+    sections.forEach((section,index) => section?.classList.toggle('hidden', [0,0,1,2][index] !== projectorPage));
+    label = ['정책 비교·종합 결과', '모둠별 순위', '토론 질문'][projectorPage];
+  } else {
+    const body = doc.querySelector('.modal-overlay.active .modal-body') || doc.querySelector('.table-container');
+    if (body) {
+      projectorPageCount = Math.max(1, Math.ceil(body.scrollHeight / Math.max(1, body.clientHeight)));
+      projectorPage = Math.min(projectorPage, projectorPageCount - 1);
+      body.scrollTop = projectorPage * body.clientHeight;
+      label = doc.querySelector('.modal-overlay.active') ? '활동 안내' : '진행 기록';
+    }
+  }
+  document.getElementById('projector-page-status').textContent = `학생 화면: ${label} (${projectorPage + 1}/${projectorPageCount})`;
+  document.getElementById('btn-projector-prev').disabled = projectorPage <= 0;
+  document.getElementById('btn-projector-next').disabled = projectorPage >= projectorPageCount - 1;
+  const caption = doc.createElement('p'); caption.className = 'student-page-caption';
+  caption.textContent = `${label} · ${projectorPage + 1}/${projectorPageCount}`;
+  (result?.querySelector('.modal-header') || final?.querySelector('.result-header'))?.appendChild(caption);
+}
+for (const [id, delta] of [['btn-projector-prev', -1], ['btn-projector-next', 1]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    projectorPage = Math.max(0, Math.min(projectorPageCount - 1, projectorPage + delta));
+    updateProjectorView();
+  });
+}
+document.getElementById('btn-projector-focus').addEventListener('click', () => state.projectorWindow?.focus());

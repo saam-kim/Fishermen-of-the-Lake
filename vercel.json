@@ -5,6 +5,7 @@
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "privacy.html", "use": "@vercel/static" },
     { "src": "app.js", "use": "@vercel/static" },
+    { "src": "projector-styles.js", "use": "@vercel/static" },
     { "src": "style.css", "use": "@vercel/static" },
     { "src": "og.png", "use": "@vercel/static" }
   ],

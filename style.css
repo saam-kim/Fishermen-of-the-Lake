@@ -1612,21 +1612,10 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 /* 가림막 활성화 상태에서 임시 공개 상태가 아닐 때 내부 보트 버튼들은 원천 가림 */
-.team-inputs-list.mask-active .team-input-row:not(.temp-reveal) .boat-selectors {
+.team-inputs-list.mask-active .team-input-row .boat-selectors {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-}
-
-/* 교사가 클릭해서 임시로 열어둔 상태 */
-.team-inputs-list.mask-active .team-input-row.temp-reveal .mask-overlay-layer {
-  display: none;
-}
-
-/* 임시 공개 시 보더 하이라이트 */
-.team-inputs-list.mask-active .team-input-row.temp-reveal {
-  border-color: rgba(52, 211, 153, 0.6) !important;
-  box-shadow: 0 0 15px rgba(52, 211, 153, 0.15) !important;
 }
 
 /* Ensure relative position on row for absolute indicator */
@@ -1974,3 +1963,139 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 
+
+/* Desktop workspace: keep controls usable on short laptop displays. */
+@media screen {
+  body { padding: clamp(12px, 1.4vw, 24px); align-items: flex-start; }
+  .app-container { max-width: 1920px; }
+  .game-header { gap: 16px; flex-wrap: wrap; }
+  .header-left { flex: 1 1 560px; min-width: 0; }
+  .header-stats { flex-wrap: wrap; }
+  #btn-open-projector { margin-left: 0 !important; }
+  .game-main-layout { grid-template-columns: minmax(0, 1.15fr) minmax(390px, 1fr); align-items: stretch; }
+  .lake-card, .control-panel, .panel-card, .history-section { min-width: 0; }
+  .lake-card-header, .timer-section, .section-header { flex-wrap: wrap; gap: 12px; }
+  .timer-controls { flex-wrap: wrap; }
+  .canvas-container { min-height: 260px; }
+  #lake-canvas { position: absolute; inset: 0; }
+  .boat-selectors-wrapper { min-width: 0; flex-shrink: 0; }
+  .team-input-row { gap: 12px; padding: 8px 12px; }
+  .team-name-badge { flex-wrap: wrap; }
+  .history-table { white-space: nowrap; }
+  .table-container { max-height: 380px; }
+  .history-table th { position: sticky; top: 0; z-index: 1; }
+  .modal-overlay { padding: 16px; z-index: 2000; }
+  .modal-content { width: 100%; max-height: calc(100dvh - 32px); padding: 24px; }
+  .modal-header, .modal-footer { flex-shrink: 0; }
+  .modal-header { padding-right: 28px; }
+  .modal-footer { gap: 12px; flex-wrap: wrap; }
+  .team-results-block { overflow-x: auto; }
+  .modal-team-table { min-width: 480px; }
+  #result-modal .modal-content { max-width: 1100px; }
+  .boat-label.fine-risk { color: #92400e; }
+  .result-actions { flex-wrap: wrap; }
+  .result-stat-card { min-width: 0; }
+}
+@media screen and (min-width: 1100px) {
+  #result-modal .modal-body, #projector-result-modal .modal-body {
+    display: grid; grid-template-columns: minmax(230px, .8fr) minmax(0, 1.6fr); gap: 20px; align-items: start;
+  }
+  .turn-summary-block { margin-bottom: 0; }
+  #modal-anonymity-msg { grid-column: 1 / -1; }
+}
+@media screen and (min-width: 900px) and (max-height: 850px) {
+  #game-screen { gap: 12px; }
+  .game-header, .lake-card, .panel-card { padding: 14px; }
+  .control-panel, .panel-card, .lake-card { gap: 10px; }
+  .input-panel-scroll { max-height: 230px; }
+  .policy-card { padding: 7px 4px; }
+  .policy-icon { font-size: 1.2rem; }
+  .btn-large { padding: 12px 18px; }
+}
+@media screen and (max-width: 899px) {
+  .game-main-layout { grid-template-columns: minmax(0, 1fr); }
+  .canvas-container { height: 300px; flex: none; }
+  .result-dashboard { grid-template-columns: 1fr; }
+  .discussion-grid { grid-template-columns: 1fr; }
+  .setup-card, .result-card { padding: 24px; }
+  .setup-grid .input-group { min-width: 0; width: 100%; }
+  .setup-header h1 { font-size: 2.5rem; }
+  .leaderboard-bar-wrapper { margin: 0 12px; }
+}
+
+/* Student display: use the width of 16:9, 16:10 and 4:3 projectors. */
+@media screen {
+  body.projector-view { display: block; padding: 16px; }
+  .projector-body-container { width: 100%; margin: 0 auto; }
+  .projector-view #game-screen { display: grid !important; grid-template-columns: minmax(0, 1.5fr) minmax(350px, 1fr); grid-template-rows: auto minmax(0, 1fr); height: calc(100dvh - 32px); gap: 16px; }
+  .projector-view .game-header { grid-column: 1 / -1; padding: 12px 20px; }
+  .projector-view .header-left { flex-basis: 350px; }
+  .projector-view .brand-title { font-size: clamp(22px, 1.7vw, 34px); }
+  .projector-view .stat-value { font-size: clamp(22px, 2vw, 36px); }
+  .projector-view .game-main-layout { display: flex; min-height: 0; }
+  .projector-view .lake-card { width: 100%; min-height: 0; padding: 16px; }
+  .projector-view .canvas-container { min-height: 120px; height: auto; flex: 1; }
+  .projector-view .lake-card-header { align-items: flex-start; flex-direction: column; }
+  .projector-view .lake-header-stat-value { font-size: clamp(28px, 2.8vw, 48px); }
+  .projector-view .lake-header-stat-label, .projector-view .capacity-info { font-size: 16px; }
+  .projector-view .timer-section { justify-content: center; }
+  .projector-view .timer-clock { font-size: clamp(28px, 3vw, 48px); }
+  .projector-view .history-section { min-height: 0; padding: 16px; gap: 12px; }
+  .projector-view .table-container { max-height: none; overflow: auto; }
+  .projector-view .history-table { white-space: normal; table-layout: fixed; }
+  .projector-view .history-table th, .projector-view .history-table td { padding: 10px 3px; font-size: clamp(14px, 1.1vw, 21px); overflow-wrap: anywhere; }
+  .projector-view .modal-content { max-width: 1280px; }
+  .projector-view .modal-team-table th, .projector-view .modal-team-table td { font-size: clamp(16px, 1.3vw, 24px); }
+  .projector-view .summary-details { font-size: clamp(17px, 1.4vw, 24px); }
+  .projector-view .control-panel { display: none; }
+}
+@media screen and (max-width: 899px) {
+  .projector-view #game-screen { height: auto; min-height: calc(100dvh - 32px); grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+  .projector-view .canvas-container { min-height: 300px; }
+  .projector-view .table-container { max-height: 360px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+@media screen {
+  .projector-view .history-table th, .projector-view .history-table td { word-break: keep-all; overflow-wrap: normal; }
+  .projector-view .history-table th:first-child { width: 12%; }
+  .summary-details, .summary-highlight { word-break: keep-all; overflow-wrap: anywhere; }
+}
+
+.classroom-options { display: grid; gap: 16px; text-align: left; margin: 0 0 24px; }
+.classroom-options label { display: grid; gap: 6px; font-weight: 700; }
+.classroom-options select { width: 100%; min-width: 0; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; color: #0f172a; font: inherit; }
+.classroom-options p { color: #475569; font-size: .9rem; }
+.input-progress { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 14px; }
+.input-progress > span { color: #475569; font-size: .9rem; }
+.input-progress .btn { padding: 5px 9px; }
+.input-progress [aria-pressed="true"] { border-color: #2563eb; background: #eff6ff; }
+.projector-controls { position: fixed; z-index: 4000; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border: 1px solid #93c5fd; border-radius: 14px; background: #fff; box-shadow: 0 4px 24px #0f172a33; width: max-content; max-width: calc(100% - 16px); }
+#projector-page-status { font-weight: 700; font-size: .9rem; }
+.has-projector { padding-bottom: 82px; }
+.has-projector .modal-overlay { padding-bottom: 82px; }
+.has-projector .modal-content { max-height: calc(100dvh - 100px); }
+.phase-comparison { margin: 0 0 24px; }
+.phase-comparison > p { margin: 8px 0 16px; color: #475569; }
+.phase-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.student-page-caption { font-size: 16px; color: #475569; margin-top: 6px; }
+.projector-view #projector-result-modal .modal-body { display: block; }
+.projector-view #projector-result-modal .turn-summary-block { padding: 10px 14px; margin-bottom: 12px; }
+.projector-view #projector-result-modal .lake-gauge-container { display: none; }
+.projector-view #projector-result-modal .summary-highlight { font-size: 20px; margin-bottom: 4px; }
+.projector-view #projector-result-modal .summary-highlight span { font-size: 24px !important; }
+.projector-view #projector-result-modal .summary-details { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; font-size: 16px; }
+.projector-view #projector-result-modal .summary-details p { margin: 0; }
+.projector-view #projector-result-modal .modal-team-table { margin-bottom: 8px; }
+.projector-view #projector-result-modal .modal-team-table td { padding: 8px; }
+.projector-view #projector-result-modal .modal-header { margin-bottom: 12px; padding-bottom: 10px; }
+.projector-view #projector-result-modal .alert-info { padding: 8px 12px; font-size: 14px; }
+.projector-view .result-card { padding: 20px; }
+.projector-view .result-header { margin-bottom: 16px; padding-bottom: 12px; }
+.projector-view .leaderboard-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.projector-view .leaderboard-bar-wrapper { display: none; }
+.projector-view .result-stat-card { padding: 16px; }
+@media screen and (max-width: 899px) { .phase-summary-grid { grid-template-columns: 1fr; } }
+@media print { .projector-controls, .input-progress, #btn-export-csv { display: none !important; } }
