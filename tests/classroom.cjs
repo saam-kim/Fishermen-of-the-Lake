@@ -35,14 +35,14 @@ const { pathToFileURL } = require('node:url');
         }
         await page.locator('.brand-title').click();
         for (let i = 0; i < 8; i++) await page.keyboard.press(turn <= 3 ? '3' : '1');
-        assert.match(await page.locator('#input-progress').innerText(), /8\/8모둠 입력 완료/);
+        assert.equal(await page.locator('.team-input-row.entered').count(), 8);
         if (!dual && turn === 1) {
           await page.locator('#team-row-1 .mask-overlay-layer').click();
           assert.equal(await page.locator('#team-row-1 .boat-selectors').isVisible(), false);
           await page.keyboard.press('h');
           assert.equal(await page.evaluate(() => state.isInputMasked), true);
           // Correct a selected team without exposing its value.
-          await page.locator('#input-progress button').first().click();
+          await page.locator('#team-row-1 .team-name-badge').click();
           await page.keyboard.press('3');
         }
         await page.click('#btn-execute-turn');

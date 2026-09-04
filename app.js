@@ -789,7 +789,6 @@ function setFocusedTeam(index) {
       row.classList.remove('focused');
     }
   });
-  updateInputProgress();
 }
 
 function moveInputFocus(direction) {
@@ -824,7 +823,6 @@ function selectTeamChoice(teamIndex, value) {
     
     // Remove pulse styling from execute button
     document.getElementById('btn-execute-turn').classList.remove('pulse-ready');
-    updateInputProgress();
     return;
   }
   
@@ -940,7 +938,6 @@ function renderTeamInputs() {
   });
   
   state.focusedTeamIndex = 0;
-  updateInputProgress();
 }
 
 // Applies the lake health text/color to a given badge element based on the fish ratio
@@ -2022,7 +2019,6 @@ function syncProjectorDOM() {
   } else if (gameScreen.classList.contains('active')) {
     // Clone layout structure
     const mainCloned = gameScreen.cloneNode(true);
-    mainCloned.querySelector('#input-progress')?.remove();
     
     // Strip elements not needed for projector
     const controlPanel = mainCloned.querySelector('.control-panel');
@@ -2162,20 +2158,6 @@ updateResumeButton();
 // Classroom controls never expose masked choices on a shared display.
 let projectorPage = 0;
 let projectorPageCount = 1;
-function updateInputProgress() {
-  const panel = document.getElementById('input-progress');
-  if (!panel) return;
-  const entered = state.teams.filter(team => team.currentChoice !== null).length;
-  panel.innerHTML = `<strong>${entered}/${state.teamsCount}모둠 입력 완료</strong><span>현재 ${state.focusedTeamIndex + 1}모둠 · 숫자로 입력/정정</span>`;
-  state.teams.forEach((team, index) => {
-    const button = document.createElement('button');
-    button.type = 'button'; button.className = 'btn btn-sm btn-outline';
-    button.textContent = `${team.id}모둠 ${team.currentChoice === null ? '대기' : '완료'}`;
-    button.setAttribute('aria-pressed', String(index === state.focusedTeamIndex));
-    button.addEventListener('click', () => setFocusedTeam(index));
-    panel.appendChild(button);
-  });
-}
 function enterSingleDisplay() {
   state.displayMode = 'single'; state.isInputMasked = true;
   syncInputMaskUi();
