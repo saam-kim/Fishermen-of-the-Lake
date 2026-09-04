@@ -44,7 +44,7 @@
           <div class="setup-header">
             <p class="setup-kicker">교사용 수업 설정</p>
             <h2>호수로 떠날 준비</h2>
-            <p class="setup-intro">모둠과 진행 방식을 정하고 시작하세요.</p>
+            <p class="setup-intro">모둠 수와 화면 구성을 정하고 시작하세요.</p>
           </div>
         <form id="setup-form">
           <div class="setup-grid">
@@ -61,8 +61,7 @@
 
           <div class="classroom-options">
             <label>화면 구성<select id="input-display-mode"><option value="single">단일 화면 · 비밀 입력 기본</option><option value="dual">듀얼 화면 · 교사/학생 분리</option></select></label>
-            <label>수업 방식<select id="input-lesson-mode" aria-describedby="setup-lesson-description"><option value="continuous">연속 진행 · 고갈 이후도 그대로</option><option value="comparison">정책 비교 · 4·7턴에 같은 초기 호수로 새 실험</option></select></label>
-            <p id="setup-lesson-description" aria-live="polite">앞 턴의 호수 상태가 다음 턴으로 이어집니다. 공동 자원의 변화와 고갈의 영향을 9턴 동안 관찰합니다.</p>
+            <p id="setup-lesson-description">세 정책을 같은 초기 호수에서 비교합니다. 4·7턴에 물고기를 초기 수로 되돌려 새 실험을 시작하며, 모둠 점수는 누적됩니다.</p>
           </div>
           <div class="setup-actions">
             <button type="button" class="btn btn-primary btn-large" id="btn-start-game">시뮬레이션 시작하기 <span aria-hidden="true">→</span></button>

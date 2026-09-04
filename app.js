@@ -15,7 +15,7 @@ const state = {
   // Configurable settings
   teamsCount: 5,
   displayMode: 'single',
-  lessonMode: 'continuous',
+  lessonMode: 'comparison',
   comparisonStarted: [],
 
   // Game running state
@@ -606,7 +606,7 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   const teamsCountInput = parseInt(document.getElementById('input-teams-count').value);
 
   state.displayMode = document.getElementById('input-display-mode').value;
-  state.lessonMode = document.getElementById('input-lesson-mode').value;
+  state.lessonMode = 'comparison';
 
   // Initialize state (maxTurns/reproductionRate/allocation/decimal rule are fixed constants;
   // initial fish scales with team count so the balance holds regardless of class size)
@@ -1624,7 +1624,8 @@ document.getElementById('btn-end-depleted').addEventListener('click', () => {
 
 // Restart Buttons
 document.getElementById('btn-restart-keep-settings').addEventListener('click', () => {
-  // Restart game using exactly same configuration
+  // New classroom sessions always compare policies from equal initial resources.
+  state.lessonMode = 'comparison';
   state.fishCount = state.initialFish;
   state.currentTurn = 1;
   state.isGameOver = false;
@@ -2243,11 +2244,3 @@ for (const [id, delta] of [['btn-projector-prev', -1], ['btn-projector-next', 1]
   });
 }
 document.getElementById('btn-projector-focus').addEventListener('click', () => state.projectorWindow?.focus());
-
-
-// Keep the setup explanation aligned with the selected lesson mode.
-document.getElementById('input-lesson-mode').addEventListener('change', event => {
-  document.getElementById('setup-lesson-description').textContent = event.target.value === 'comparison'
-    ? '4·7턴에 같은 초기 물고기로 새 실험을 시작합니다. 모둠 점수는 누적되며, 마지막에 정책별 결과를 비교합니다.'
-    : '앞 턴의 호수 상태가 다음 턴으로 이어집니다. 공동 자원의 변화와 고갈의 영향을 9턴 동안 관찰합니다.';
-});
