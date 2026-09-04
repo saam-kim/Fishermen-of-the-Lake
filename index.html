@@ -84,36 +84,32 @@
       
       <!-- Top Dashboard Header -->
       <header class="game-header glass">
-        <div class="header-left" style="flex-wrap: wrap; gap: 8px;">
-          <button type="button" class="btn btn-sm btn-outline btn-back-setup" id="btn-home-icon" title="모둠 설정 화면으로 돌아가기">
-            ← 모둠 설정 수정
-          </button>
+        <div class="header-left">
           <div class="game-titles">
-            <h1 class="brand-title">호수의 어부들 : 공유지의 비극</h1>
-            <p class="current-policy-tag" id="active-policy-display">자유 방임 모드 (기본)</p>
+            <h1 class="brand-title">호수의 어부들</h1>
+            <p class="header-subtitle">공유지의 비극 · 경제 수업</p>
+            <p class="visually-hidden" id="active-policy-display">자유 방임</p>
           </div>
-          <button class="btn btn-sm btn-outline" id="btn-open-projector" style="margin-left: 15px; font-weight: bold; background: rgba(6, 182, 212, 0.1); border-color: var(--accent-blue); color: var(--accent-blue);">
-            🖥️ 빔프로젝터용 화면 (학생용) 띄우기
-          </button>
-          <button type="button" class="btn btn-sm btn-outline" id="btn-single-display">단일 화면으로 전환</button>
-          <button class="btn btn-sm btn-outline" id="btn-header-rules" style="font-weight: bold; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.02);">
-            📜 활동 규칙
-          </button>
         </div>
-        
         <div class="header-stats">
           <div class="stat-box">
-            <span class="stat-label">현재 진행 턴</span>
+            <span class="stat-label">진행 턴</span>
             <span class="stat-value" id="display-turn">1 / 9</span>
           </div>
           <div class="stat-box border-accent lesson-progress-box">
-            <span class="stat-label">수업 진행 상황</span>
+            <span class="stat-label">현재 단계</span>
             <span class="stat-value badge text-success" id="display-phase-status">🌿 자유 방임</span>
             <div class="lesson-progress-track">
               <div class="lesson-progress-fill" id="lesson-progress-fill"></div>
             </div>
           </div>
         </div>
+        <nav class="header-actions" aria-label="수업 도구">
+          <button type="button" class="btn btn-sm btn-outline" id="btn-header-rules">활동 규칙</button>
+          <button type="button" class="btn btn-sm btn-outline" id="btn-open-projector" title="교사·학생 화면을 분리하여 새 창 열기">학생 화면 열기 ↗</button>
+          <button type="button" class="btn btn-sm btn-outline" id="btn-single-display" title="학생 창을 닫고 비밀 입력이 적용되는 단일 화면으로 전환">단일 화면 전환</button>
+          <button type="button" class="btn btn-sm btn-outline btn-back-setup" id="btn-home-icon" title="모둠 설정 화면으로 돌아가기">수업 설정</button>
+        </nav>
       </header>
 
       <div id="input-progress" class="glass input-progress" aria-live="polite"></div>

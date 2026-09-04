@@ -2163,3 +2163,44 @@ input[type=number]::-webkit-outer-spin-button {
   .setup-journey small { font-size: .65rem; }
   .setup-layout .setup-card { padding: 22px 18px; }
 }
+
+/* Classroom header: identity, progress, then secondary actions. */
+@media screen {
+  .game-header { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 24px; padding: 16px 22px; }
+  .game-header .header-left { min-width: 0; }
+  .game-header .brand-title { font-size: 1.45rem; color: #174780; line-height: 1.25; }
+  .header-subtitle { margin-top: 5px; color: #64748b; font-size: .8rem; }
+  .game-header .header-stats { flex-wrap: nowrap; gap: 0; align-items: center; }
+  .game-header .stat-box { min-width: 100px; padding: 0 20px; border: 0; border-radius: 0; background: transparent; align-items: flex-start; }
+  .game-header .lesson-progress-box { min-width: 175px; border-left: 1px solid #dce5ef; }
+  .game-header .stat-label { font-size: .72rem; }
+  .game-header .stat-value { font-size: 1.35rem; line-height: 1.35; white-space: nowrap; }
+  .game-header .stat-value.badge { font-size: 1.08rem; margin-top: 2px; }
+  .game-header .lesson-progress-track { width: 100%; height: 4px; margin-top: 7px; }
+  .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-left: 20px; border-left: 1px solid #dce5ef; }
+  .header-actions .btn { min-height: 38px; padding: 8px 12px; font-size: .8rem; white-space: nowrap; border-radius: 10px; }
+  .header-actions #btn-home-icon { color: #52657c; background: transparent; border-color: #dce5ef; }
+  body:not(.has-projector) #btn-single-display { display: none; }
+  body.has-projector #btn-open-projector { display: none; }
+  #btn-single-display { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }
+  .projector-view .game-header { grid-template-columns: minmax(0, 1fr) auto; }
+  .projector-view .header-actions { display: none; }
+  .projector-view .game-header .brand-title { font-size: clamp(24px, 2vw, 36px); }
+  .projector-view .game-header .stat-value { font-size: clamp(24px, 2vw, 34px); }
+  .projector-view .game-header .stat-value.badge { font-size: clamp(21px, 1.8vw, 30px); }
+}
+@media screen and (max-width: 1150px) {
+  body:not(.projector-view) .game-header { grid-template-columns: minmax(0,1fr) auto; gap: 12px; }
+  .header-actions { grid-column: 1 / -1; border-left: 0; border-top: 1px solid #e5edf5; padding: 10px 0 0; }
+}
+@media screen and (max-width: 600px) {
+  .game-header { padding: 14px; }
+  .game-header .brand-title { font-size: 1.2rem; }
+  .game-header .header-stats { gap: 10px; }
+  .game-header .stat-box { min-width: 0; padding: 0; }
+  .game-header .lesson-progress-box { min-width: 0; padding-left: 10px; }
+  .game-header .stat-value { font-size: 1.1rem; }
+  .game-header .stat-value.badge { font-size: .86rem; }
+  .header-actions { justify-content: flex-start; flex-wrap: wrap; }
+}
+@media print { .header-actions { display: none !important; } }
