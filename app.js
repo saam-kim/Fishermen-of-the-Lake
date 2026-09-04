@@ -2243,3 +2243,11 @@ for (const [id, delta] of [['btn-projector-prev', -1], ['btn-projector-next', 1]
   });
 }
 document.getElementById('btn-projector-focus').addEventListener('click', () => state.projectorWindow?.focus());
+
+
+// Keep the setup explanation aligned with the selected lesson mode.
+document.getElementById('input-lesson-mode').addEventListener('change', event => {
+  document.getElementById('setup-lesson-description').textContent = event.target.value === 'comparison'
+    ? '4·7턴에 같은 초기 물고기로 새 실험을 시작합니다. 모둠 점수는 누적되며, 마지막에 정책별 결과를 비교합니다.'
+    : '앞 턴의 호수 상태가 다음 턴으로 이어집니다. 공동 자원의 변화와 고갈의 영향을 9턴 동안 관찰합니다.';
+});

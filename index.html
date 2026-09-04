@@ -25,13 +25,27 @@
     
     <!-- 1. INITIAL SETUP SCREEN -->
     <section id="setup-screen" class="screen active">
-      <div class="setup-card glass">
-        <div class="setup-header">
-          <div class="logo-icon">🐟</div>
-          <h1>호수의 어부들</h1>
-          <h2>공유지의 비극 시뮬레이터</h2>
+      <div class="setup-layout">
+        <div class="setup-story">
+          <p class="setup-eyebrow"><span></span> 고2 경제 · 시장 실패와 공유 자원</p>
+          <h1 class="visually-hidden">호수의 어부들: 공유지의 비극 시뮬레이터</h1>
+          <img class="setup-lake-art" src="og.png" alt="호수의 어부들 — 어선이 떠 있는 호수와 물고기가 살아가는 수중 단면" width="1730" height="909" fetchpriority="high">
+          <div class="setup-story-copy">
+            <h2>우리 모둠의 이익과<br>모두의 호수 사이에서.</h2>
+            <p>몇 척의 배를 보낼까요?<br>선택이 모여 바꾸는 호수의 내일을 함께 살펴봅니다.</p>
+          </div>
+          <ol class="setup-journey" aria-label="9턴 수업 진행">
+            <li><span>01</span><div><strong>자유 방임</strong><small>1–3턴 · 각자의 선택</small></div></li>
+            <li><span>02</span><div><strong>자율 협약</strong><small>4–6턴 · 함께한 약속</small></div></li>
+            <li><span>03</span><div><strong>정부 규제</strong><small>7–9턴 · 규칙과 감시</small></div></li>
+          </ol>
         </div>
-        
+        <div class="setup-card glass">
+          <div class="setup-header">
+            <p class="setup-kicker">교사용 수업 설정</p>
+            <h2>호수로 떠날 준비</h2>
+            <p class="setup-intro">모둠과 진행 방식을 정하고 시작하세요.</p>
+          </div>
         <form id="setup-form">
           <div class="setup-grid">
             <div class="input-group">
@@ -47,24 +61,19 @@
 
           <div class="classroom-options">
             <label>화면 구성<select id="input-display-mode"><option value="single">단일 화면 · 비밀 입력 기본</option><option value="dual">듀얼 화면 · 교사/학생 분리</option></select></label>
-            <label>수업 방식<select id="input-lesson-mode"><option value="continuous">연속 진행 · 고갈 이후도 그대로</option><option value="comparison">정책 비교 · 4·7턴에 같은 초기 호수로 새 실험</option></select></label>
-            <p>정책 비교는 각 단계의 시작 물고기를 같게 맞춥니다. 모둠 점수는 누적되며 마지막에 단계별 어획량과 호수 상태를 비교합니다.</p>
+            <label>수업 방식<select id="input-lesson-mode" aria-describedby="setup-lesson-description"><option value="continuous">연속 진행 · 고갈 이후도 그대로</option><option value="comparison">정책 비교 · 4·7턴에 같은 초기 호수로 새 실험</option></select></label>
+            <p id="setup-lesson-description" aria-live="polite">앞 턴의 호수 상태가 다음 턴으로 이어집니다. 공동 자원의 변화와 고갈의 영향을 9턴 동안 관찰합니다.</p>
           </div>
-          <div class="setup-actions" style="display: flex; gap: 12px; justify-content: center; width: 100%; max-width: 700px; margin: 0 auto; flex-wrap: wrap;">
-            <button type="button" class="btn btn-outline btn-large" id="btn-open-guide" style="flex: 1; min-width: 140px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; white-space: nowrap;">
-              📖 활동 가이드
-            </button>
-            <button type="button" class="btn btn-outline btn-large" id="btn-open-rules" style="flex: 1; min-width: 140px; border-color: rgba(255, 255, 255, 0.2); color: #e5e7eb; font-weight: bold; white-space: nowrap;">
-              📜 활동 규칙
-            </button>
-            <button type="button" class="btn btn-primary btn-large" id="btn-start-game" style="flex: 1.5; min-width: 200px; white-space: nowrap;">
-              시뮬레이션 시작하기 🚢
-            </button>
-            <button type="button" class="btn btn-warning btn-large hidden" id="btn-resume-game" style="flex: 1.5; min-width: 200px; white-space: nowrap;">
-              💾 이전 수업 이어하기
-            </button>
+          <div class="setup-actions">
+            <button type="button" class="btn btn-primary btn-large" id="btn-start-game">시뮬레이션 시작하기 <span aria-hidden="true">→</span></button>
+            <button type="button" class="btn btn-warning hidden" id="btn-resume-game">이전 수업 이어하기</button>
+            <div class="setup-help-actions">
+              <button type="button" class="btn btn-outline" id="btn-open-guide">활동 가이드</button>
+              <button type="button" class="btn btn-outline" id="btn-open-rules">활동 규칙</button>
+            </div>
           </div>
         </form>
+        </div>
       </div>
       <footer class="site-legal">
         <a href="privacy.html">개인정보 처리 안내</a>
